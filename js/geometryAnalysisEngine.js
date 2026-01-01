@@ -437,9 +437,9 @@ class GeometryAnalysisEngine {
         // Base 10kg pour avoir une bonne plage
         let maxSafeWeight = 10.0 * geometryFactor * distanceFactor;
         
-        // Arrondir à 0.5kg
+        // Arrondir à 0.5kg, minimum 0.5kg, pas de maximum
         maxSafeWeight = Math.round(maxSafeWeight * 2) / 2;
-        maxSafeWeight = Math.max(0.5, Math.min(8, maxSafeWeight));
+        maxSafeWeight = Math.max(0.5, maxSafeWeight);
         
         console.log('>>> POIDS MAX:', maxSafeWeight, 'kg');
         

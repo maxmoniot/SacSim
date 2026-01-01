@@ -379,7 +379,8 @@ class Simulation2D {
         console.log('  Force max:', F_max.toFixed(1), 'N');
         console.log('  Poids max:', maxWeight.toFixed(1), 'kg');
         
-        return Math.max(0.5, Math.min(maxWeight, 10));
+        // Minimum 0.5kg, pas de maximum
+        return Math.max(0.5, maxWeight);
     }
 
     /**
