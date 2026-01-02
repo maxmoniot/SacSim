@@ -184,7 +184,9 @@ class BackpackSimulatorApp {
             
             slider.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
-                valueDisplay.textContent = value.toFixed(1);
+                // Y affiche 2 décimales, X et Z affichent 1 décimale
+                const decimals = (axis === 'posY') ? 2 : 1;
+                valueDisplay.textContent = value.toFixed(decimals);
                 this.updatePosition(axis.replace('pos', '').toLowerCase(), value);
             });
         });
@@ -372,6 +374,14 @@ class BackpackSimulatorApp {
             // Charger dans le viewer
             this.viewer.loadSTL(geometry);
             
+            // Mettre à jour les sliders avec la position par défaut (X=6, Y=2, Z=10)
+            document.getElementById('posX').value = 6;
+            document.getElementById('posXValue').textContent = '6.0';
+            document.getElementById('posY').value = 2;
+            document.getElementById('posYValue').textContent = '2.00';
+            document.getElementById('posZ').value = 10;
+            document.getElementById('posZValue').textContent = '10.0';
+            
             // Stocker le fichier et la géométrie
             this.currentSTLFile = {
                 file: file,
@@ -404,11 +414,11 @@ class BackpackSimulatorApp {
         
         const position = this.viewer.autoPositionOnTable();
         
-        // Mettre à jour les sliders
+        // Mettre à jour les sliders (Y avec 2 décimales)
         document.getElementById('posX').value = position.x;
         document.getElementById('posXValue').textContent = position.x.toFixed(1);
         document.getElementById('posY').value = position.y;
-        document.getElementById('posYValue').textContent = position.y.toFixed(1);
+        document.getElementById('posYValue').textContent = position.y.toFixed(2);
         document.getElementById('posZ').value = position.z;
         document.getElementById('posZValue').textContent = position.z.toFixed(1);
         
@@ -418,17 +428,13 @@ class BackpackSimulatorApp {
     resetPosition() {
         document.getElementById('posX').value = 6;
         document.getElementById('posXValue').textContent = '6.0';
-        document.getElementById('posY').value = 0;
-        document.getElementById('posYValue').textContent = '0.0';
+        document.getElementById('posY').value = 2;
+        document.getElementById('posYValue').textContent = '2.00';
         document.getElementById('posZ').value = 10;
         document.getElementById('posZValue').textContent = '10.0';
         
         if (this.viewer.stlMesh) {
-            // Recalculer la position correcte en Y
-            const box = new THREE.Box3().setFromObject(this.viewer.stlMesh);
-            const size = box.getSize(new THREE.Vector3());
-            const y = 2.1 - size.y * 0.2;
-            this.viewer.stlMesh.position.set(6, y, 10);
+            this.viewer.stlMesh.position.set(6, 2, 10);
         }
     }
 
@@ -481,15 +487,15 @@ class BackpackSimulatorApp {
         const mesh = this.viewer.stlMesh;
         const tableThickness = this.viewer.tableThickness || 2.1;
         
-        // La table est centrée à (-75, thickness/2, 40) avec dimensions (150, thickness, 80)
-        // Limites EXACTES du volume de la table en coordonnées monde
+        // La table est décalée de 0.1 vers le bas, donc son bas est à Y=-0.1
+        // et son haut à Y=tableThickness - 0.1
         const tableBounds = {
-            xMin: -150,  // -75 - 150/2
-            xMax: 0,     // -75 + 150/2
-            yMin: 0,     // thickness/2 - thickness/2
-            yMax: tableThickness, // thickness/2 + thickness/2
-            zMin: 0,     // 40 - 80/2
-            zMax: 80     // 40 + 80/2
+            xMin: -150,
+            xMax: 0,
+            yMin: -0.1,
+            yMax: tableThickness - 0.1,
+            zMin: 0,
+            zMax: 80
         };
         
         const geometry = mesh.geometry;
@@ -508,7 +514,7 @@ class BackpackSimulatorApp {
             return vertex;
         };
         
-        // Fonction pour vérifier si un point est dans la table
+        // Fonction pour vérifier si un point est dans la table (partie solide)
         const isInTable = (v) => {
             return v.x >= tableBounds.xMin && v.x <= tableBounds.xMax &&
                    v.y >= tableBounds.yMin && v.y <= tableBounds.yMax &&
@@ -526,10 +532,10 @@ class BackpackSimulatorApp {
                 return true;
             }
             
-            // Vérifier les arêtes avec échantillonnage TRÈS DENSE (tous les 0.2 cm)
+            // Vérifier les arêtes avec échantillonnage fin (tous les 0.1 cm)
             const checkEdgeDense = (va, vb) => {
                 const distance = va.distanceTo(vb);
-                const steps = Math.ceil(distance / 0.2); // Un point tous les 0.2 cm
+                const steps = Math.ceil(distance / 0.1);
                 
                 for (let step = 1; step < steps; step++) {
                     const t = step / steps;
@@ -1047,7 +1053,9 @@ class BackpackSimulatorApp {
                 const max = parseFloat(slider.max);
                 if (!isNaN(numValue) && numValue >= min && numValue <= max) {
                     slider.value = numValue;
-                    valueSpan.textContent = numValue.toFixed(1);
+                    // Y affiche 2 décimales, X et Z affichent 1 décimale
+                    const decimals = (axis === 'posY') ? 2 : 1;
+                    valueSpan.textContent = numValue.toFixed(decimals);
                     this.updatePosition(axis.replace('pos', '').toLowerCase(), numValue);
                     return true;
                 }

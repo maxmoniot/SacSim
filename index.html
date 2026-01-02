@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulateur Support Sac à Dos 3D</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0YTkwZDkiLz48cmVjdCB4PSI5IiB5PSIxMCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U5MWU2MyIvPjxyZWN0IHg9IjExIiB5PSIxNiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjciIHJ4PSIyIiBmaWxsPSIjYzIxODViIi8+PHBhdGggZD0iTTkgMTJRNiAxNCA3IDIwIiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTIzIDEyUTI2IDE0IDI1IDIwIiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTEzIDhRMTYgNSAxOSA4IiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGxpbmUgeDE9IjE0IiB5MT0iMTkiIHgyPSIxOCIgeTI9IjE5IiBzdHJva2U9IiNmOGJiZDkiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -136,13 +137,13 @@
                     <div class="axis-controls">
                         <label>
                             <span>X:</span>
-                            <input type="range" id="posX" min="-20" max="20" value="6" step="0.1">
+                            <input type="range" id="posX" min="-5" max="10" value="6" step="0.1">
                             <span id="posXValue" class="editable-value">6.0</span>
                         </label>
                         <label>
                             <span>Y:</span>
-                            <input type="range" id="posY" min="-5" max="10" value="0" step="0.1">
-                            <span id="posYValue" class="editable-value">0.0</span>
+                            <input type="range" id="posY" min="-5" max="5" value="2" step="0.05">
+                            <span id="posYValue" class="editable-value">2.00</span>
                         </label>
                         <label>
                             <span>Z:</span>
@@ -231,8 +232,8 @@
             <!-- Contrôles de caméra -->
             <div class="camera-controls">
                 <div class="control-hint">
-                    <span>🖱️ Clique et glisse pour tourner</span>
-                    <span>🔍 Molette pour zoomer</span>
+                    <span>🖱️ Clic gauche : tourner</span>
+                    <span>🔍 Molette/Clic droit : zoomer</span>
                 </div>
             </div>
         </main>

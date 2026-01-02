@@ -41,6 +41,13 @@ class Viewer3D {
         this.controls.minDistance = 10;
         this.controls.maxDistance = 400;
         this.controls.maxPolarAngle = Math.PI / 2;
+        
+        // Inverser clic droit (pan) et clic molette (zoom)
+        this.controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.PAN,
+            RIGHT: THREE.MOUSE.DOLLY
+        };
 
         // Lumières
         this.setupLights();
@@ -140,8 +147,8 @@ class Viewer3D {
         
         // IMPORTANT : Positionner pour que le coin inférieur droit soit à (0, 0, 0)
         // La table fait 150cm (X) x 80cm (Z)
-        // Donc on décale de -75 en X et +40 en Z pour que le coin soit au centre
-        this.tableMesh.position.set(-75, thickness / 2, 40);
+        // Décalée de 0.1 vers le bas pour permettre l'insertion des supports bien ajustés
+        this.tableMesh.position.set(-75, thickness / 2 - 0.1, 40);
         
         this.tableMesh.receiveShadow = true;
         this.tableMesh.castShadow = true;
@@ -387,17 +394,9 @@ class Viewer3D {
         
         this.scene.add(this.stlMesh);
 
-        // POSITIONNER par défaut à X=6, Y=0, Z=10
-        this.stlMesh.geometry.computeBoundingBox();
-        const bbox = new THREE.Box3().setFromObject(this.stlMesh);
-        const size = bbox.getSize(new THREE.Vector3());
-        
-        // Position par défaut demandée
-        const xPos = 6;
-        const yPos = 2.1 - size.y * 0.2; // Ajuster Y pour insertion dans la table
-        const zPos = 10;
-        
-        this.stlMesh.position.set(xPos, yPos, zPos);
+        // POSITIONNER par défaut à X=6, Y=2, Z=10
+        // Y=2 permet au support de s'insérer dans une table de 2.1cm
+        this.stlMesh.position.set(6, 2, 10);
 
         // Vue adaptée à l'objet automatiquement
         this.fitCameraToObject();
