@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur - Embed</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Hide elements not needed in embed mode */
+        .app-header { display: none !important; }
+        .loading-screen { display: none !important; }
+        .tutorial-overlay { display: none !important; }
+        .settings-overlay { display: none !important; }
+        .credits-overlay { display: none !important; }
+        /* Make file section show loaded file info */
+        #fileUploadZone { display: none !important; }
+        /* Remove body padding from header */
+        body { padding-top: 0 !important; margin: 0; }
+        .main-container { height: 100vh !important; }
+        /* Embed banner */
+        .embed-banner {
+            background: linear-gradient(135deg, #1a1a3e, #0f3460);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #ccc;
+            border-bottom: 1px solid rgba(74,144,217,.3);
+            flex-shrink: 0;
+        }
+        .embed-banner .eb-name { font-weight: 600; color: #4a90d9; }
+        .embed-banner .eb-status { font-size: 12px; }
+        .embed-banner .eb-status.ready { color: #2ecc71; }
+        .embed-banner .eb-status.loading { color: #f1c40f; }
+        /* Auto-run indicator */
+        .embed-autorun {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15,52,96,0.95);
+            border: 2px solid #4a90d9;
+            border-radius: 16px;
+            padding: 24px 40px;
+            text-align: center;
+            color: white;
+            font-size: 16px;
+            z-index: 9999;
+            display: none;
+        }
+        .embed-autorun .spinner {
+            display: inline-block;
+            width: 24px; height: 24px;
+            border: 3px solid rgba(74,144,217,.3);
+            border-top-color: #4a90d9;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Hidden stubs for app.js compatibility -->
+    <div id="loadingScreen" class="loading-screen hidden"></div>
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div class="tutorial-content">
+            <div class="tutorial-step active clickable" data-step="1" id="tutorialStep1"></div>
+            <button id="closeTutorial"></button>
+        </div>
+    </div>
+    <button id="helpBtn" style="display:none"></button>
+    <button id="settingsBtn" style="display:none"></button>
+    <button id="creditsBtn" style="display:none"></button>
+
+    <!-- Embed banner (replaces header) -->
+    <div class="embed-banner">
+        <span>🎒 <span class="eb-name" id="embedFileName">En attente du fichier…</span></span>
+        <span class="eb-status loading" id="embedStatus">⏳ En attente</span>
+    </div>
+
+    <!-- Auto-run indicator -->
+    <div class="embed-autorun" id="embedAutorun">
+        <div class="spinner"></div>
+        <div>Chargement et simulation automatique…</div>
+    </div>
+
+    <!-- Popup Réglages (hidden but needed for JS) -->
+    <div id="settingsOverlay" class="settings-overlay hidden">
+        <div class="settings-content">
+            <button class="settings-close" id="closeSettings">×</button>
+            <div class="settings-icon">⚙️</div>
+            <h2>Réglages</h2>
+            <div class="settings-section">
+                <label class="settings-label">Matériau du support :</label>
+                <select id="materialSelect" class="settings-select">
+                    <option value="pla">PLA</option>
+                    <option value="wood">Bois</option>
+                    <option value="metal">Métal</option>
+                    <option value="custom">Personnalisé...</option>
+                </select>
+                <div class="material-info">
+                    <span class="material-label">Coefficient :</span>
+                    <div class="material-value-container">
+                        <input type="number" id="materialCoefficient" class="material-coefficient" value="1.0" min="0.1" max="10" step="0.1" readonly>
+                        <span class="material-unit">×</span>
+                    </div>
+                </div>
+                <p class="settings-hint" id="materialHint">PLA</p>
+            </div>
+            <button id="closeSettingsBtn" class="btn-primary">Appliquer</button>
+        </div>
+    </div>
+
+    <div id="creditsOverlay" class="credits-overlay hidden">
+        <div class="credits-content">
+            <button class="credits-close" id="closeCredits">×</button>
+            <h2>Crédits</h2>
+            <button id="closeCreditsBtn" class="btn-primary">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Contenu principal (IDENTIQUE à index.html) -->
+    <div class="main-container">
+        <aside class="sidebar left-sidebar">
+            <div class="panel">
+                <h2>📁 Fichier</h2>
+                <div class="file-upload-zone" id="fileUploadZone" style="padding: 15px; min-height: auto;">
+                    <input type="file" id="stlFileInput" accept=".stl" hidden>
+                    <button id="uploadBtn" class="btn-secondary" style="width: 100%; margin: 0;">Choisir un fichier STL</button>
+                </div>
+                <div id="fileInfo" class="file-info hidden">
+                    <div class="info-row">
+                        <span class="info-label">Fichier :</span>
+                        <span id="fileName" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Taille :</span>
+                        <span id="fileSize" class="info-value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎯 Position</h2>
+                <h3 style="font-size: 14px; margin: 10px 0; color: #666;">📏 Épaisseur de la table</h3>
+                <div class="table-thickness-control">
+                    <label style="display: block;">
+                        <input type="range" id="tableThickness" min="0.1" max="10" value="2.1" step="0.1">
+                        <span id="tableThicknessValue" style="cursor: pointer; user-select: none;">2.1 cm</span>
+                    </label>
+                </div>
+                <div class="position-controls">
+                    <div class="axis-controls">
+                        <label>
+                            <span>X:</span>
+                            <input type="range" id="posX" min="-5" max="10" value="6" step="0.1">
+                            <span id="posXValue" class="editable-value">6.0</span>
+                        </label>
+                        <label>
+                            <span>Y:</span>
+                            <input type="range" id="posY" min="-5" max="5" value="2" step="0.05">
+                            <span id="posYValue" class="editable-value">2.00</span>
+                        </label>
+                        <label>
+                            <span>Z:</span>
+                            <input type="range" id="posZ" min="-10" max="20" value="10" step="0.1">
+                            <span id="posZValue" class="editable-value">10.0</span>
+                        </label>
+                    </div>
+                    <button class="position-btn" data-action="resetPosition">
+                        <span>↺</span> Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header-with-toggle">
+                    <h2>🔄 Rotation</h2>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="rotationFreeMode">
+                        <span>Libre</span>
+                    </label>
+                </div>
+                <div class="rotation-controls">
+                    <div class="axis-controls">
+                        <label>
+                            <span>X:</span>
+                            <input type="range" id="rotX" min="0" max="360" value="0" step="90">
+                            <span id="rotXValue" class="editable-value">0°</span>
+                        </label>
+                        <label>
+                            <span>Y:</span>
+                            <input type="range" id="rotY" min="0" max="360" value="0" step="90">
+                            <span id="rotYValue" class="editable-value">0°</span>
+                        </label>
+                        <label>
+                            <span>Z:</span>
+                            <input type="range" id="rotZ" min="0" max="360" value="0" step="90">
+                            <span id="rotZValue" class="editable-value">0°</span>
+                        </label>
+                    </div>
+                    <button class="position-btn" data-action="resetRotation">
+                        <span>↺</span> Réinitialiser rotation
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="viewer-container">
+            <div id="canvas-container" class="canvas-container"></div>
+            <button id="recenterBtn" class="recenter-overlay-btn" title="Recentrer la vue">🎯</button>
+            <div class="status-indicators">
+                <div id="tableThicknessIndicator" class="table-thickness-indicator">
+                    <div class="indicator-icon">📐</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Épaisseur table</div>
+                        <div class="indicator-value" id="tableThicknessDisplay">2.1 cm</div>
+                    </div>
+                </div>
+                <div id="stabilityIndicator" class="stability-indicator">
+                    <div class="indicator-icon">⚖️</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Stabilité</div>
+                        <div class="indicator-value" id="stabilityValue">-</div>
+                    </div>
+                </div>
+                <div id="stressIndicator" class="stress-indicator">
+                    <div class="indicator-icon">⚖️</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Poids max</div>
+                        <div class="indicator-value" id="stressValue">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-controls">
+                <div class="control-hint">
+                    <span>🖱️ Clic gauche : tourner</span>
+                    <span>🔍 Molette/Clic droit : zoomer</span>
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar right-sidebar">
+            <div class="panel">
+                <h2>⚖️ Simulation</h2>
+                <div class="hanging-point-section">
+                    <h3>📍 Point d'accrochage du sac</h3>
+                    <button id="selectHangingPointBtn" class="btn-secondary btn-large">
+                        <span>🎯</span>
+                        Modifier le point d'accrochage
+                    </button>
+                </div>
+                <div class="weight-control">
+                    <div class="weight-display">
+                        <div class="weight-icon">🎒</div>
+                        <div class="weight-value">
+                            <span id="weightValue">5.0</span>
+                            <span class="unit">kg</span>
+                        </div>
+                    </div>
+                    <input type="range" id="weightSlider" min="0" max="15" value="5" step="0.5" class="weight-slider">
+                    <div class="weight-labels">
+                        <span>0 kg</span>
+                        <span>15 kg</span>
+                    </div>
+                </div>
+                <button id="simulateBtn" class="btn-primary btn-large" disabled>
+                    <span>🔬</span> Lancer la simulation
+                </button>
+                <div class="simulation-info" style="margin-top: 10px; font-size: 12px; color: #666;">
+                    La simulation va tester la stabilité du support ET visualiser les contraintes
+                </div>
+                <div id="simulationResults" class="simulation-results hidden">
+                    <div class="result-status" id="resultStatus"></div>
+                    <div class="result-details" id="resultDetails"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+    <div id="simulationLoader" class="simulation-loader hidden">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p>Analyse en cours...</p>
+        </div>
+    </div>
+
+    <!-- Scripts (IDENTIQUES à index.html) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/stlParser.js"></script>
+    <script src="js/geometryAnalysisEngine.js"></script>
+    <script src="js/simulation2D.js"></script>
+    <script src="js/physicsSimulator.js"></script>
+    <script src="js/viewer3d.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Embed bridge: API for correction.html -->
+    <script>
+    (function() {
+        // ============================================================
+        // sacSimAPI — interface pour piloter sac-sim depuis l'extérieur
+        // ============================================================
+        var api = window.sacSimAPI = {};
+        var _app = null;
+
+        // Attendre que l'app soit prête
+        function waitForApp() {
+            return new Promise(function(resolve) {
+                (function check() {
+                    if (window.app && window.app.viewer && window.app.viewer.renderer) {
+                        _app = window.app;
+                        resolve(_app);
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                })();
+            });
+        }
+
+        // ── Charger un STL depuis un ArrayBuffer ──
+        api.loadSTL = async function(arrayBuffer, fileName) {
+            var app = await waitForApp();
+            app.skipCollisionCheck = true; // désactiver la collision table en mode embed
+            var blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+            var file = new File([blob], fileName || 'support.stl');
+            await app.loadSTLFile(file);
+            return app;
+        };
+
+        // ── Positionner le mesh DIRECTEMENT (bypass collision) ──
+        api.setPosition = function(x, y, z) {
+            if (!_app || !_app.viewer.stlMesh) return;
+            _app.viewer.stlMesh.position.set(x, y, z);
+            _app.viewer.stlMesh.updateMatrixWorld(true);
+            // Sync sliders
+            _syncSlider('posX', x, 1);
+            _syncSlider('posY', y, 2);
+            _syncSlider('posZ', z, 1);
+        };
+
+        // ── Tourner le mesh DIRECTEMENT (bypass collision + no clear HP) ──
+        api.setRotation = function(xDeg, yDeg, zDeg) {
+            if (!_app || !_app.viewer.stlMesh) return;
+            _app.viewer.stlMesh.rotation.set(
+                xDeg * Math.PI / 180,
+                yDeg * Math.PI / 180,
+                zDeg * Math.PI / 180
+            );
+            _app.viewer.stlMesh.updateMatrixWorld(true);
+            _syncSlider('rotX', xDeg, 0, '°');
+            _syncSlider('rotY', yDeg, 0, '°');
+            _syncSlider('rotZ', zDeg, 0, '°');
+        };
+
+        // ── Épaisseur de table ──
+        api.setTableThickness = function(cm) {
+            if (!_app) return;
+            _app.viewer.createTable(cm);
+            var sl = document.getElementById('tableThickness');
+            var vl = document.getElementById('tableThicknessValue');
+            var dp = document.getElementById('tableThicknessDisplay');
+            if (sl) sl.value = cm;
+            if (vl) vl.textContent = cm.toFixed(1) + ' cm';
+            if (dp) dp.textContent = cm.toFixed(1) + ' cm';
+        };
+
+        // ── Point d'accroche ──
+        api.setHangingPoint = function(x, y, z) {
+            if (!_app || !_app.viewer) return;
+            var pt = new THREE.Vector3(x, y, z);
+            _app.viewer.setHangingPoint(pt);
+            // Activer le bouton simulation
+            var btn = document.getElementById('simulateBtn');
+            if (btn) btn.disabled = false;
+        };
+
+        // ── Lancer la simulation ──
+        api.runSimulation = async function() {
+            if (!_app) { console.warn('📋 runSim: _app is null'); return null; }
+            console.log('📋 runSim: currentSTLFile=', !!_app.currentSTLFile,
+                'hangingPoint=', !!_app.viewer.hangingPoint,
+                'supportOnTable=', _app.checkSupportOnTable(),
+                'hpOnSupport=', _app.checkHangingPointOnSupport(),
+                'skipCollision=', !!_app.skipCollisionCheck);
+            await _app.runSimulation();
+            var result = _app.lastSimulationResult;
+            console.log('📋 runSim: lastSimulationResult=', result ? result.maxWeight : 'null');
+            return result ? result.maxWeight : null;
+        };
+
+        // ── Recentrer la caméra ──
+        api.fitCamera = function() {
+            if (!_app || !_app.viewer) return;
+            if (_app.viewer.fitCameraToObjectAndTable) {
+                _app.viewer.fitCameraToObjectAndTable();
+            } else {
+                _app.viewer.fitCameraToObject();
+            }
+        };
+
+        // ── Pipeline complet : charger + analyser + positionner + simuler ──
+        api.loadAnalyzeAndSimulate = async function(arrayBuffer, fileName, analysis) {
+            var status = document.getElementById('embedStatus');
+            var banner = document.getElementById('embedFileName');
+            var autorun = document.getElementById('embedAutorun');
+
+            if (banner) banner.textContent = fileName || 'Support';
+            if (status) { status.textContent = '⏳ Chargement…'; status.className = 'eb-status loading'; }
+            if (autorun) autorun.style.display = 'block';
+
+            // 1. Charger le STL (position par défaut: 6, 2, 10)
+            await api.loadSTL(arrayBuffer, fileName);
+
+            // 2. Utiliser l'analyse fournie par correction.html
+            if (!analysis) {
+                console.warn('⚠️ Pas d\'analyse fournie');
+            }
+
+            if (analysis && analysis.success && analysis.orientation) {
+                console.log('📋 Analyse reçue: slot=' + (analysis.slotHeight||0).toFixed(1) + 'mm');
+                var M = analysis.orientation.canonicalTransform.matrix;
+                var O = analysis.orientation.canonicalTransform.origin;
+                var pp = analysis.purplePoint;
+
+                console.log('📋 GreenPoint brut:', O.x.toFixed(1), O.y.toFixed(1), O.z.toFixed(1));
+                console.log('📋 PurplePoint brut:', pp.x.toFixed(1), pp.y.toFixed(1), pp.z.toFixed(1));
+
+                // 3. Corriger la matrice (det < 0 → rotation impropre)
+                var det = M[0][0]*(M[1][1]*M[2][2]-M[1][2]*M[2][1])
+                        - M[0][1]*(M[1][0]*M[2][2]-M[1][2]*M[2][0])
+                        + M[0][2]*(M[1][0]*M[2][1]-M[1][1]*M[2][0]);
+                var Mf = [M[0].slice(), M[1].slice(), M[2].slice()];
+                if (det < 0) {
+                    Mf[2] = M[2].map(function(v){ return -v; });
+                    console.log('📋 Det < 0, matrice corrigée');
+                }
+
+                // Euler depuis la matrice
+                var m4 = new THREE.Matrix4();
+                m4.set(Mf[0][0],Mf[0][1],Mf[0][2],0,
+                       Mf[1][0],Mf[1][1],Mf[1][2],0,
+                       Mf[2][0],Mf[2][1],Mf[2][2],0,
+                       0,0,0,1);
+                var euler = new THREE.Euler();
+                euler.setFromRotationMatrix(m4);
+
+                // Snap to 90°
+                function snap(rad) {
+                    var d = rad * 180 / Math.PI;
+                    var s = Math.round(d / 90) * 90;
+                    return Math.abs(d - s) < 10 ? s : d;
+                }
+                var rxDeg = snap(euler.x);
+                var ryDeg = snap(euler.y);
+                var rzDeg = snap(euler.z);
+
+                // 4. Épaisseur de table = hauteur fente / 10 (AVANT le positionnement)
+                var tableT = analysis.slotHeight / 10;
+                api.setTableThickness(tableT);
+                console.log('📋 Table:', tableT.toFixed(2), 'cm');
+
+                // 5. Appliquer la rotation
+                api.setRotation(rxDeg, ryDeg, rzDeg);
+                console.log('📋 Rotation:', rxDeg + '°', ryDeg + '°', rzDeg + '°');
+
+                // 6. Calculer la position à partir du greenPoint
+                var geom = STLParser.parse(arrayBuffer);
+                geom.computeBoundingBox();
+                var rawCenter = new THREE.Vector3();
+                geom.boundingBox.getCenter(rawCenter);
+                geom.dispose();
+                console.log('📋 RawCenter:', rawCenter.x.toFixed(1), rawCenter.y.toFixed(1), rawCenter.z.toFixed(1));
+
+                var rxRad = rxDeg * Math.PI / 180;
+                var ryRad = ryDeg * Math.PI / 180;
+                var rzRad = rzDeg * Math.PI / 180;
+                var rot = new THREE.Euler(rxRad, ryRad, rzRad);
+
+                // GreenPoint après center + scale + rotation
+                var gp = new THREE.Vector3(O.x, O.y, O.z);
+                gp.sub(rawCenter).multiplyScalar(0.1).applyEuler(rot);
+                console.log('📋 GreenPoint local (après center+scale+rot):', gp.x.toFixed(3), gp.y.toFixed(3), gp.z.toFixed(3));
+
+                // Position : X et Z depuis le greenPoint, Y ajusté
+                var posX = -gp.x;           // greenPoint → X=0 (bord de table)
+                var posZ = 10 - gp.z;       // greenPoint → Z=10 (centre table)
+                var posY = -gp.y - 0.1;     // greenPoint → Y≈0, -0.1 = descendre de ~1mm
+
+                api.setPosition(posX, posY, posZ);
+                console.log('📋 Position mesh:', posX.toFixed(2), posY.toFixed(2), posZ.toFixed(2));
+
+                // 7. Point d'accroche (purple point)
+                var ppV = new THREE.Vector3(pp.x, pp.y, pp.z);
+                ppV.sub(rawCenter).multiplyScalar(0.1).applyEuler(rot);
+                var hpX = ppV.x + posX, hpY = ppV.y + posY, hpZ = ppV.z + posZ;
+                api.setHangingPoint(hpX, hpY, hpZ);
+                console.log('📋 HangingPoint:', hpX.toFixed(2), hpY.toFixed(2), hpZ.toFixed(2));
+
+                // 8. Vérifier l'état réel du mesh
+                if (_app && _app.viewer.stlMesh) {
+                    var p = _app.viewer.stlMesh.position;
+                    var r = _app.viewer.stlMesh.rotation;
+                    console.log('📋 VÉRIF mesh.position:', p.x.toFixed(2), p.y.toFixed(2), p.z.toFixed(2));
+                    console.log('📋 VÉRIF mesh.rotation:', (r.x*180/Math.PI).toFixed(0)+'°', (r.y*180/Math.PI).toFixed(0)+'°', (r.z*180/Math.PI).toFixed(0)+'°');
+                }
+            } else {
+                console.warn('⚠️ Analyse échouée ou pas d\'orientation, position par défaut (6, 2, 10)');
+            }
+
+            // 9. Recentrer la caméra
+            api.fitCamera();
+
+            // 10. Lancer la simulation
+            if (status) { status.textContent = '🔬 Simulation…'; }
+            var weight = null;
+            try {
+                await new Promise(function(r){ setTimeout(r, 300); });
+                weight = await api.runSimulation();
+                console.log('📋 Résultat simulation:', weight !== null ? weight.toFixed(1) + ' kg' : 'null');
+            } catch(e) { console.warn('Simulation échouée:', e); }
+
+            if (status) {
+                status.textContent = weight !== null ? ('✅ ' + weight.toFixed(1) + ' kg') : '⚠️ Terminé';
+                status.className = 'eb-status ready';
+            }
+            if (autorun) autorun.style.display = 'none';
+
+            // 11. Réactiver la collision pour les ajustements manuels
+            var innerApp = await waitForApp();
+            innerApp.skipCollisionCheck = false;
+
+            return weight;
+        };
+
+        // ── Helpers ──
+        function _syncSlider(id, value, decimals, suffix) {
+            var sl = document.getElementById(id);
+            var vl = document.getElementById(id + 'Value');
+            if (sl) sl.value = value;
+            if (vl) vl.textContent = value.toFixed(decimals || 0) + (suffix || '');
+        }
+
+        // ── Écouter les messages du parent (correction.html) ──
+        window.addEventListener('message', function(e) {
+            var msg = e.data;
+            if (!msg || msg.type !== 'loadSTL') return;
+            api._currentIndex = msg.index; // pour identifier le fichier dans le batch
+            api._currentFileName = msg.fileName;
+            api.loadAnalyzeAndSimulate(msg.arrayBuffer, msg.fileName, msg.analysis);
+        });
+
+        // ── Renvoyer les résultats de simulation + screenshot ──
+        waitForApp().then(function(app) {
+            var origRun = app.runSimulation.bind(app);
+            app.runSimulation = async function() {
+                await origRun();
+                if (app.lastSimulationResult) {
+                    // Capturer le screenshot avec les contraintes colorées
+                    var screenshot = null;
+                    try {
+                        // Zoom serré sur le support
+                        if (app.viewer.stlMesh) {
+                            var box = new THREE.Box3().setFromObject(app.viewer.stlMesh);
+                            var center = box.getCenter(new THREE.Vector3());
+                            var size = box.getSize(new THREE.Vector3());
+                            var maxDim = Math.max(size.x, size.y, size.z);
+                            var fov = app.viewer.camera.fov * (Math.PI / 180);
+                            var dist = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.2;
+                            app.viewer.camera.position.set(center.x + dist * 0.5, center.y + dist * 0.4, center.z + dist * 0.7);
+                            app.viewer.controls.target.copy(center);
+                            app.viewer.controls.update();
+                        }
+                        app.viewer.renderer.render(app.viewer.scene, app.viewer.camera);
+                        screenshot = app.viewer.renderer.domElement.toDataURL('image/png');
+                    } catch(e) { console.warn('Screenshot échoué:', e); }
+
+                    window.parent.postMessage({
+                        type: 'simResult',
+                        maxWeight: app.lastSimulationResult.maxWeight,
+                        screenshot: screenshot,
+                        index: api._currentIndex,
+                        fileName: api._currentFileName
+                    }, '*');
+                }
+            };
+        });
+
+        // ── Notifier le parent que l'embed est prêt ──
+        window.addEventListener('load', function() {
+            window.parent.postMessage({ type: 'embedReady' }, '*');
+        });
+
+    })();
+    </script>
+</body>
+</html>

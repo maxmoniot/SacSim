@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correction Batch — Support Sac à Dos</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#0f111a;--card:#1a1d2e;--input:#232738;
+            --bdr:#2d3250;--bdr2:#3a3f5c;
+            --txt:#e2e4f0;--dim:#8b8fa8;
+            --acc:#4a90d9;--grn:#34d399;--red:#f87171;--ora:#fbbf24;--pur:#a78bfa;
+            --grn-bg:rgba(52,211,153,.15);--red-bg:rgba(248,113,113,.15);--ora-bg:rgba(251,191,36,.15);
+        }
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+
+        .hdr{background:linear-gradient(135deg,#1e2235,#161829);border-bottom:1px solid var(--bdr);padding:18px 32px;display:flex;align-items:center;gap:16px}
+        .hdr h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--acc),var(--pur));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .badge{background:var(--acc);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase}
+
+        .wrap{max-width:1440px;margin:0 auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+
+        /* Settings */
+        .spanel{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden}
+        .shdr{padding:14px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s}
+        .shdr:hover{background:rgba(74,144,217,.05)}
+        .shdr h2{font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px}
+        .chev{transition:transform .25s;color:var(--dim);font-size:18px}
+        .spanel.collapsed .chev{transform:rotate(-90deg)}
+        .spanel.collapsed .sbody{display:none}
+        .sbody{padding:0 22px 22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+        .sg{background:var(--input);border:1px solid var(--bdr);border-radius:10px;padding:16px}
+        .sg h3{font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+        .sg-pts{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--acc);text-transform:none;letter-spacing:0}
+        .sg-pts .pts-input{width:42px!important;padding:3px 4px!important;font-size:12px!important;-moz-appearance:textfield}
+        .sg-pts .pts-input::-webkit-outer-spin-button,.sg-pts .pts-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+        .bareme-hint{font-size:11px;color:var(--dim);opacity:.7;margin-top:4px;line-height:1.4;font-style:italic}
+        .sr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .sr:last-child{margin-bottom:0}
+        .sr label{font-size:13px;color:var(--dim);min-width:76px}
+        .sr input[type="number"]{width:70px;padding:5px 8px;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:13px;text-align:center;-moz-appearance:textfield}
+        .sr input[type="number"]::-webkit-outer-spin-button,.sr input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+        .sr input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(74,144,217,.2)}
+        .unit{font-size:12px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+        .pts-input{width:50px!important;background:rgba(74,144,217,.1)!important;border-color:rgba(74,144,217,.3)!important;color:var(--acc)!important;-moz-appearance:textfield!important}
+        .pts-input::-webkit-outer-spin-button,.pts-input::-webkit-inner-spin-button{-webkit-appearance:none!important;margin:0}
+        .sep{margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px}
+
+        /* Upload */
+        .upz{background:var(--card);border:2px dashed var(--bdr2);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s}
+        .upz:hover,.upz.dragover{border-color:var(--acc);background:rgba(74,144,217,.05)}
+        .upz .icon{font-size:40px;margin-bottom:10px}
+        .upz .tt{font-size:16px;font-weight:600;margin-bottom:4px}
+        .upz .st{font-size:13px;color:var(--dim)}
+        .upz input{display:none}
+
+        /* Bar */
+        .fbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+        .fcnt{font-size:14px;color:var(--dim)}.fcnt strong{color:var(--txt)}
+        .bg{display:flex;gap:10px;flex-wrap:wrap}
+        .btn{padding:9px 20px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .15s}
+        .btn:disabled{opacity:.4;cursor:not-allowed}
+        .bp{background:linear-gradient(135deg,var(--acc),#3a7bc8);color:#fff;box-shadow:0 2px 8px rgba(74,144,217,.3)}
+        .bp:hover:not(:disabled){box-shadow:0 4px 16px rgba(74,144,217,.45);transform:translateY(-1px)}
+        .bx{background:var(--grn-bg);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+        .bx:hover:not(:disabled){background:rgba(52,211,153,.25)}
+        .bd{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+        .bd:hover:not(:disabled){background:rgba(248,113,113,.25)}
+
+        /* Progress */
+        .pbc{background:var(--input);border-radius:6px;height:8px;overflow:hidden;display:none}
+        .pbc.active{display:block}
+        .pb{height:100%;background:linear-gradient(90deg,var(--acc),var(--pur));border-radius:6px;width:0%;transition:width .3s}
+        .ptx{font-size:13px;color:var(--dim);text-align:center;margin-top:6px;display:none}
+        .ptx.active{display:block}
+
+        /* Summary */
+        .summary{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px 24px;display:none;gap:24px;flex-wrap:wrap;align-items:center}
+        .summary.visible{display:flex}
+        .sbox{text-align:center;min-width:100px}
+        .sbox .sv{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace}
+        .sbox .sl{font-size:12px;color:var(--dim);margin-top:2px}
+
+        /* Cards */
+        .cards{display:none;flex-direction:column;gap:8px}
+        .cards.visible{display:flex}
+        .card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:row;align-items:stretch}
+        .card:hover{border-color:var(--bdr2)}
+        .card-body{flex:1;min-width:0;display:flex;flex-direction:column}
+        .card-hdr{padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bdr)}
+        .card-name{font-size:13px;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .card-score{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;padding:3px 12px;border-radius:20px}
+        .cs-pass{background:var(--grn-bg);color:var(--grn)}
+        .cs-warn{background:var(--ora-bg);color:var(--ora)}
+        .cs-fail{background:var(--red-bg);color:var(--red)}
+        .cs-pending{background:rgba(241,196,15,.1);color:var(--ora);animation:pulse-pending 1.5s ease-in-out infinite}
+        @keyframes pulse-pending{0%,100%{opacity:1}50%{opacity:.5}}
+
+        .card-thumb{background:#0f1525;padding:0;position:relative;transition:background .15s;width:140px;min-width:140px;min-height:90px;cursor:pointer;border-radius:0;overflow:hidden;flex-shrink:0}
+        .card-thumb:hover{background:#141a2e}
+        .card-thumb canvas{display:block;width:100%;height:100%}
+        .card-thumb img{display:block;width:100%;height:auto}
+        .card-thumb::after{content:'🔍';position:absolute;top:6px;right:8px;font-size:14px;opacity:.3;transition:opacity .15s;z-index:1}
+        .card-thumb:hover::after{opacity:.8}
+
+
+        .tb-spinner{display:inline-block;width:10px;height:10px;border:2px solid rgba(100,255,218,.3);border-top-color:#64ffda;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        .card-rows{padding:6px 14px;flex:1;display:flex;gap:0;align-items:stretch}
+        .crow{flex:1;min-width:0;display:flex;flex-direction:column;padding:4px 10px;border-right:1px solid rgba(45,50,80,.4);font-size:12px;gap:1px;justify-content:center}
+        .crow:last-child{border-right:none}
+        .crow-label{color:var(--dim);font-size:10px}
+        .crow-val{font-family:'JetBrains Mono',monospace;font-size:12px}
+        .crow-pts{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap}
+        .p-pass{color:var(--grn)}
+        .p-fail{color:var(--red)}
+        .p-part{color:var(--ora)}
+        .card-err{padding:20px 16px;text-align:center;color:var(--red);font-size:13px}
+        .dim-sub{font-size:10px;color:var(--dim);display:block;margin-top:1px}
+
+        /* Lightbox */
+        .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
+        .lightbox.open{display:flex}
+        .lightbox-inner{background:#0f1525;border:1px solid var(--bdr2);border-radius:16px;padding:16px;position:relative;cursor:default;display:flex;flex-direction:column;gap:8px;height:85vh}
+        .lightbox-title{font-size:15px;font-weight:600;color:var(--txt);text-align:center}
+        .lightbox-close{position:absolute;top:10px;right:14px;font-size:22px;color:var(--dim);cursor:pointer;background:none;border:none;line-height:1;transition:color .15s;z-index:2}
+        .lightbox-close:hover{color:var(--txt)}
+
+        /* Responsive */
+        @media(max-width:768px){
+            .wrap{padding:14px}.hdr{padding:14px 16px}
+            .sbody{grid-template-columns:1fr}
+            .upz{padding:24px}
+            .card{flex-direction:column}
+            .card-thumb{width:100%;min-width:0;height:120px}
+        }
+    </style>
+</head>
+<body>
+
+<header class="hdr">
+    <h1>🎒 Correction Batch — Support Sac à Dos</h1>
+    <span class="badge">Enseignant</span>
+</header>
+
+<div class="wrap">
+    <!-- Settings -->
+    <div class="spanel" id="settingsPanel">
+        <div class="shdr" id="settingsToggle">
+            <h2>⚙️ Critères de correction</h2>
+            <span class="chev">▼</span>
+        </div>
+        <div class="sbody">
+            <div class="sg">
+                <h3><span>📐 Dimensions maximales</span><span class="sg-pts"><input type="number" id="ptsDim" value="5" min="0" max="100" step="1" class="pts-input"> pts</span></h3>
+                <div class="sr"><label>Longueur :</label><input type="number" id="dimX" value="100" min="1" max="500" step="1"><span class="unit">mm</span></div>
+                <div class="sr"><label>Largeur :</label><input type="number" id="dimY" value="60" min="1" max="500" step="1"><span class="unit">mm</span></div>
+                <div class="sr"><label>Profondeur :</label><input type="number" id="dimZ" value="30" min="1" max="500" step="1"><span class="unit">mm</span></div>
+            </div>
+            <div class="sg">
+                <h3><span>📏 Hauteur de fente</span><span class="sg-pts"><input type="number" id="ptsSlot" value="5" min="0" max="100" step="1" class="pts-input"> pts</span></h3>
+                <div class="sr"><label>Minimum :</label><input type="number" id="slotMin" value="19" min="1" max="100" step="0.5"><span class="unit">mm</span></div>
+                <div class="sr"><label>Maximum :</label><input type="number" id="slotMax" value="22" min="1" max="100" step="0.5"><span class="unit">mm</span></div>
+            </div>
+            <div class="sg">
+                <h3><span>🎒 Poids minimum supporté</span><span class="sg-pts"><input type="number" id="ptsWeight" value="10" min="0" max="100" step="1" class="pts-input"> pts</span></h3>
+                <div class="sr"><label>Objectif :</label><input type="number" id="targetWeight" value="9" min="0.5" max="50" step="0.5"><span class="unit">kg</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barème -->
+    <div class="spanel" id="baremePanel">
+        <div class="shdr" id="baremeToggle">
+            <h2>📊 Barème</h2>
+            <span class="chev">▼</span>
+        </div>
+        <div class="sbody">
+            <div class="sg">
+                <h3>📐 Pénalité dimensions</h3>
+                <div class="sr"><label>Dépassement :</label><input type="number" id="dimPenStep" value="0.5" min="0.1" max="10" step="0.1"><span class="unit">mm = −1 pt</span></div>
+                <div class="bareme-hint">Chaque tranche de dépassement retire 1 point, cumulatif sur chaque dimension</div>
+            </div>
+            <div class="sg">
+                <h3>📏 Pénalité hauteur de fente</h3>
+                <div class="sr"><label>Écart :</label><input type="number" id="slotPenStep" value="1" min="0.1" max="10" step="0.1"><span class="unit">mm = −1 pt</span></div>
+                <div class="bareme-hint">Chaque mm d'écart avec la plage retire 1 point</div>
+            </div>
+            <div class="sg">
+                <h3>🎒 Lien fente → poids</h3>
+                <div class="sr"><label>Écart max :</label><input type="number" id="slotWeightMaxDev" value="20" min="1" max="50" step="1"><span class="unit">mm</span></div>
+                <div class="sr"><label>Multiplicateur min :</label><input type="number" id="slotWeightMinMult" value="0.1" min="0" max="1" step="0.05"><span class="unit">×</span></div>
+                <div class="bareme-hint">Si fente OK → poids ×1. Si écart = 20mm → poids ×0.1. Dégradé linéaire entre les deux</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="upz" id="uploadZone">
+        <div class="icon">📂</div>
+        <div class="tt">Glisser-déposer les fichiers STL ici</div>
+        <div class="st">ou cliquer pour sélectionner — plusieurs fichiers acceptés</div>
+        <input type="file" id="fileInput" accept=".stl" multiple>
+    </div>
+
+    <!-- Bar -->
+    <div class="fbar" id="fileBar" style="display:none">
+        <span class="fcnt" id="fileCount"></span>
+        <div class="bg">
+            <button class="btn bp" id="btnSim" disabled>🔬 Lancer la correction</button>
+            <button class="btn bx" id="btnCSV" disabled>📊 Exporter CSV</button>
+            <button class="btn bd" id="btnClear">🗑️ Tout effacer</button>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="pbc" id="progC"><div class="pb" id="progB"></div></div>
+    <div class="ptx" id="progT"></div>
+
+    <!-- Summary -->
+    <div class="summary" id="summaryBar">
+        <div class="sbox"><div class="sv" id="sumAvg" style="color:var(--acc)">—</div><div class="sl">Moyenne</div></div>
+        <div class="sbox"><div class="sv" id="sumPass" style="color:var(--grn)">—</div><div class="sl">100 %</div></div>
+        <div class="sbox"><div class="sv" id="sumWarn" style="color:var(--ora)">—</div><div class="sl">Partiel</div></div>
+        <div class="sbox"><div class="sv" id="sumFail" style="color:var(--red)">—</div><div class="sl">Échec / Erreur</div></div>
+        <div class="sbox"><div class="sv" id="sumTotal" style="color:var(--dim)">—</div><div class="sl">Total</div></div>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards" id="cardsGrid"></div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+    <div class="lightbox-inner" style="max-width:98vw;max-height:96vh;width:98vw">
+        <button class="lightbox-close" id="lbClose">✕</button>
+        <div class="lightbox-title" id="lbTitle"></div>
+        <div style="display:flex;gap:0;flex:1;min-height:0;overflow:hidden">
+            <div id="lbSvg" style="flex:1;min-width:0;position:relative;border-radius:8px;overflow:hidden"></div>
+            <div id="lbPanel" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- ============================================================ -->
+<!-- STL Backpack Analyzer (browser version) -->
+<script src="js/stl-backpack-analyzer-browser.js"></script>
+
+<div id="hiddenSimContainer" style="position:absolute;left:-9999px;top:-9999px;width:400px;height:300px;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/stlParser.js"></script>
+<script src="js/simulation2D.js"></script>
+<script src="js/geometryAnalysisEngine.js"></script>
+
+
+<!-- ============================================================ -->
+<!-- Application                                                  -->
+<!-- ============================================================ -->
+<script>
+(function() {
+'use strict';
+
+var files = [], results = [];
+
+var uploadZone = document.getElementById('uploadZone');
+var fileInput  = document.getElementById('fileInput');
+var fileBar    = document.getElementById('fileBar');
+var fileCount  = document.getElementById('fileCount');
+var btnSim     = document.getElementById('btnSim');
+var btnCSV     = document.getElementById('btnCSV');
+var btnClear   = document.getElementById('btnClear');
+var progC = document.getElementById('progC');
+var progB = document.getElementById('progB');
+var progT = document.getElementById('progT');
+var cardsGrid  = document.getElementById('cardsGrid');
+var summaryBar = document.getElementById('summaryBar');
+
+// === Lightbox ===
+var lightbox = document.getElementById('lightbox');
+var lbTitle  = document.getElementById('lbTitle');
+var lbSvg    = document.getElementById('lbSvg');
+
+function openLightbox(title, svgHtml) {
+    lbTitle.textContent = title;
+    lbSvg.innerHTML = svgHtml;
+    lightbox.classList.add('open');
+}
+function closeLightbox() {
+    closeLightbox3D();
+}
+
+lightbox.addEventListener('click', function(e) {
+    if (e.target === lightbox) closeLightbox();
+});
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+});
+
+// === Settings toggle ===
+document.getElementById('settingsToggle').onclick = function() {
+    document.getElementById('settingsPanel').classList.toggle('collapsed');
+};
+document.getElementById('baremeToggle').onclick = function() {
+    document.getElementById('baremePanel').classList.toggle('collapsed');
+};
+// Start barème collapsed
+document.getElementById('baremePanel').classList.add('collapsed');
+
+// === Upload ===
+uploadZone.onclick = function() { fileInput.click(); };
+uploadZone.ondragover = function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); };
+uploadZone.ondragleave = function() { uploadZone.classList.remove('dragover'); };
+uploadZone.ondrop = function(e) { e.preventDefault(); uploadZone.classList.remove('dragover'); addFiles(e.dataTransfer.files); };
+fileInput.onchange = function() { addFiles(fileInput.files); };
+
+async function addFiles(fl) {
+    for (var i = 0; i < fl.length; i++) {
+        var f = fl[i];
+        if (!f.name.toLowerCase().endsWith('.stl')) continue;
+        if (files.some(function(u) { return u.name === f.name && u.file.size === f.size; })) continue;
+        files.push({ file: f, arrayBuffer: await f.arrayBuffer(), name: f.name });
+    }
+    refreshBar();
+}
+function refreshBar() {
+    fileBar.style.display = files.length ? 'flex' : 'none';
+    fileCount.innerHTML = '<strong>' + files.length + '</strong> fichier(s)';
+    btnSim.disabled = !files.length;
+}
+btnClear.onclick = function() {
+    files = []; results = []; fileInput.value = '';
+    refreshBar(); cardsGrid.classList.remove('visible'); cardsGrid.innerHTML = '';
+    summaryBar.classList.remove('visible'); btnCSV.disabled = true;
+    progC.classList.remove('active'); progT.classList.remove('active');
+};
+
+// === Config ===
+function pf(id) { return parseFloat(document.getElementById(id).value); }
+function cfg() {
+    return {
+        maxDims: [pf('dimX'), pf('dimY'), pf('dimZ')].sort(function(a,b){return a-b}),
+        slotMin: pf('slotMin'), slotMax: pf('slotMax'), targetWeight: pf('targetWeight'),
+        ptsDim: pf('ptsDim'), ptsSlot: pf('ptsSlot'), ptsWeight: pf('ptsWeight'),
+        // Barème
+        dimPenStep: pf('dimPenStep'),         // mm de dépassement par point perdu
+        slotPenStep: pf('slotPenStep'),       // mm d'écart par point perdu
+        slotWeightMaxDev: pf('slotWeightMaxDev'),  // écart max fente pour mult min
+        slotWeightMinMult: pf('slotWeightMinMult') // multiplicateur poids quand écart max
+    };
+}
+
+// === Transform ===
+function transformGeom(geom, ar) {
+    var M = ar.orientation.canonicalTransform.matrix, O = ar.orientation.canonicalTransform.origin;
+    var sp = geom.attributes.position, n = sp.count, np = new Float32Array(n*3);
+    for (var i = 0; i < n; i++) {
+        var dx=sp.getX(i)-O.x, dy=sp.getY(i)-O.y, dz=sp.getZ(i)-O.z;
+        np[i*3]=M[0][0]*dx+M[0][1]*dy+M[0][2]*dz;
+        np[i*3+1]=M[1][0]*dx+M[1][1]*dy+M[1][2]*dz;
+        np[i*3+2]=M[2][0]*dx+M[2][1]*dy+M[2][2]*dz;
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(np, 3));
+    g.computeBoundingBox();
+    return g;
+}
+function getDims(g) {
+    g.computeBoundingBox(); var b = g.boundingBox;
+    return { x:Math.round((b.max.x-b.min.x)*100)/100, y:Math.round((b.max.y-b.min.y)*100)/100, z:Math.round((b.max.z-b.min.z)*100)/100 };
+}
+
+// === Simulation de poids ===
+// Reproduit EXACTEMENT le pipeline de l'app élève :
+// 1. Géométrie RAW + center() (comme loadSTL)
+// 2. Rotation dérivée de la matrice canonique (= ce que l'élève fait manuellement)
+// 3. Position auto-calculée pour que le support soit correctement sur la table
+// 4. Mêmes moteurs : Simulation2D puis fallback GeometryAnalysisEngine
+
+function simulate(ab, ar, extraRotation) {
+    // --- Dimensions depuis la géométrie canonique (pour le barème) ---
+    var canonGeom = STLParser.parse(ab);
+    var tg = transformGeom(canonGeom, ar);
+    var dims = getDims(tg);
+    tg.dispose();
+    canonGeom.dispose();
+
+    var debug = { method: 'Pipeline identique app élève', steps: [] };
+    var M = ar.orientation.canonicalTransform.matrix;
+    var O = ar.orientation.canonicalTransform.origin;
+
+    // === ÉTAPE 1 : Géométrie RAW + center() — identique à loadSTL ===
+    var rawGeom = STLParser.parse(ab);
+    rawGeom.center(); // IDENTIQUE à viewer3d.loadSTL
+    rawGeom.computeBoundingBox();
+
+    debug.steps.push('── Géométrie (identique app élève) ──');
+    debug.steps.push('geometry.center() = OUI');
+    debug.steps.push('vertices count = ' + rawGeom.attributes.position.count);
+    var rawBB = rawGeom.boundingBox;
+    debug.steps.push('centered bbox X=[' + rawBB.min.x.toFixed(1) + ',' + rawBB.max.x.toFixed(1) + '] Y=[' + rawBB.min.y.toFixed(1) + ',' + rawBB.max.y.toFixed(1) + '] Z=[' + rawBB.min.z.toFixed(1) + ',' + rawBB.max.z.toFixed(1) + ']');
+
+    // === ÉTAPE 2 : Convertir matrice canonique → Euler ===
+    // ATTENTION : la matrice canonique peut être une réflexion impropre (det = -1).
+    // Three.js Euler ne gère que les rotations propres (det = +1).
+    // Fix : si det < 0, on négate la 3e ligne pour obtenir la rotation propre la plus proche.
+    var det = M[0][0]*(M[1][1]*M[2][2]-M[1][2]*M[2][1])
+            - M[0][1]*(M[1][0]*M[2][2]-M[1][2]*M[2][0])
+            + M[0][2]*(M[1][0]*M[2][1]-M[1][1]*M[2][0]);
+    var Mfix = [M[0].slice(), M[1].slice(), M[2].slice()];
+    if (det < 0) {
+        Mfix[2] = M[2].map(function(v){ return -v; });
+    }
+    var m4 = new THREE.Matrix4();
+    m4.set(
+        Mfix[0][0], Mfix[0][1], Mfix[0][2], 0,
+        Mfix[1][0], Mfix[1][1], Mfix[1][2], 0,
+        Mfix[2][0], Mfix[2][1], Mfix[2][2], 0,
+        0, 0, 0, 1
+    );
+    var mRot = new THREE.Euler();
+    mRot.setFromRotationMatrix(m4);
+
+    // Arrondir aux multiples de 90° (les élèves tournent par incréments de 90°)
+    function snapTo90(rad) {
+        var deg = rad * 180 / Math.PI;
+        var snapped = Math.round(deg / 90) * 90;
+        if (Math.abs(deg - snapped) < 10) return snapped * Math.PI / 180;
+        return rad;
+    }
+    mRot.x = snapTo90(mRot.x);
+    mRot.y = snapTo90(mRot.y);
+    mRot.z = snapTo90(mRot.z);
+
+    debug.steps.push('');
+    debug.steps.push('── Rotation (from canonical matrix) ──');
+    debug.steps.push('det(M) = ' + det.toFixed(4) + (det < 0 ? ' → IMPROPER, row 2 negated' : ' → proper'));
+    debug.steps.push('Euler snapped = (' + (mRot.x*180/Math.PI).toFixed(1) + '°, ' + (mRot.y*180/Math.PI).toFixed(1) + '°, ' + (mRot.z*180/Math.PI).toFixed(1) + '°)');
+
+    // Appliquer la rotation manuelle supplémentaire (boutons X/Y/Z)
+    if (extraRotation) {
+        mRot.x += extraRotation.x || 0;
+        mRot.y += extraRotation.y || 0;
+        mRot.z += extraRotation.z || 0;
+        debug.steps.push('+ rotation manuelle: (' + (extraRotation.x*180/Math.PI).toFixed(0) + '°, ' + (extraRotation.y*180/Math.PI).toFixed(0) + '°, ' + (extraRotation.z*180/Math.PI).toFixed(0) + '°)');
+        debug.steps.push('Euler final = (' + (mRot.x*180/Math.PI).toFixed(1) + '°, ' + (mRot.y*180/Math.PI).toFixed(1) + '°, ' + (mRot.z*180/Math.PI).toFixed(1) + '°)');
+    }
+
+    debug.steps.push('(élève: 270.0°, 0.0°, 0.0°)');
+
+    // === ÉTAPE 3 : Calculer le centre de la raw geometry (avant center()) ===
+    // center() déplace les vertices de -center. On doit savoir ce offset.
+    var rawGeom2 = STLParser.parse(ab); // ré-parser pour avoir la version non-centrée
+    rawGeom2.computeBoundingBox();
+    var rawCenter = new THREE.Vector3();
+    rawGeom2.boundingBox.getCenter(rawCenter);
+    rawGeom2.dispose();
+
+    debug.steps.push('raw geometry center = (' + rawCenter.x.toFixed(1) + ', ' + rawCenter.y.toFixed(1) + ', ' + rawCenter.z.toFixed(1) + ')');
+
+    // === ÉTAPE 4 : Calculer où le greenPoint atterrit après center+scale+rotation ===
+    // greenPoint en coords raw, puis centré, puis scale 0.1, puis rotation
+    var gp = new THREE.Vector3(O.x, O.y, O.z); // greenPoint = canonical origin
+    gp.sub(rawCenter);        // center() offset
+    gp.multiplyScalar(0.1);   // scale mm→cm
+    gp.applyEuler(mRot);      // rotation
+
+    debug.steps.push('greenPoint raw = (' + O.x + ', ' + O.y + ', ' + O.z + ')');
+    debug.steps.push('greenPoint après center+scale+rot = (' + gp.x.toFixed(3) + ', ' + gp.y.toFixed(3) + ', ' + gp.z.toFixed(3) + ')');
+
+    // === ÉTAPE 5 : Position du mesh ===
+    // Le support PEND sous la table. Le greenPoint (paroi interne de la fente)
+    // doit être environ au niveau du bord inférieur de la table (Y ≈ 0),
+    // PAS au niveau du dessus (Y = tableT). C'est ce que font les élèves.
+    var tableT = ar.slotHeight / 10; // cm — l'élève règle le slider pour correspondre à sa fente
+    var mPos = new THREE.Vector3(
+        -gp.x,           // greenPoint.x → 0 (bord de table)
+        -gp.y,           // greenPoint.y → 0 (bas de table — le support pend)
+        -gp.z            // greenPoint.z → 0
+    );
+
+    debug.steps.push('');
+    debug.steps.push('── Position mesh (auto-calculée) ──');
+    debug.steps.push('tableThickness = ' + tableT.toFixed(2) + ' cm (= slotHeight/10 = ' + ar.slotHeight + 'mm / 10)');
+    debug.steps.push('meshPosition = (' + mPos.x.toFixed(3) + ', ' + mPos.y.toFixed(3) + ', ' + mPos.z.toFixed(3) + ')');
+
+    // Vérification : greenPoint en world = gp + mPos devrait ≈ (0, 0, 0)
+    var gpWorld = gp.clone().add(mPos);
+    debug.steps.push('greenPoint world = (' + gpWorld.x.toFixed(3) + ', ' + gpWorld.y.toFixed(3) + ', ' + gpWorld.z.toFixed(3) + ') (should be ≈ 0, 0, 0 = table bottom edge)');
+
+    // === ÉTAPE 6 : Calculer le hanging point (purple point en world coords) ===
+    var pp = ar.purplePoint;
+    var ppV = new THREE.Vector3(pp.x, pp.y, pp.z);
+    ppV.sub(rawCenter);       // center() offset
+    ppV.multiplyScalar(0.1);  // scale mm→cm
+    ppV.applyEuler(mRot);     // rotation
+    ppV.add(mPos);            // mesh position
+
+    debug.steps.push('');
+    debug.steps.push('── Hanging point (from purple) ──');
+    debug.steps.push('purplePoint raw = (' + pp.x + ', ' + pp.y + ', ' + pp.z + ')');
+    debug.steps.push('hangingPoint world = (' + ppV.x.toFixed(3) + ', ' + ppV.y.toFixed(3) + ', ' + ppV.z.toFixed(3) + ')');
+    debug.steps.push('leverArm = |hp.x| = ' + Math.abs(ppV.x).toFixed(3) + ' cm');
+
+    // === ÉTAPE 7 : Simulation2D (même moteur que app élève) ===
+    var hc = document.getElementById('hiddenSimContainer');
+    hc.innerHTML = '';
+    var sim = new Simulation2D(hc);
+    var prof = sim.extractProfile(rawGeom, mPos, mRot, tableT);
+
+    debug.steps.push('');
+    debug.steps.push('--- extractProfile ---');
+    var maxW = 0.5;
+
+    if (prof && prof.points && prof.points.length > 0) {
+        debug.steps.push('profile points: ' + prof.points.length);
+        debug.steps.push('Z width: ' + (prof.zWidth || 0).toFixed(2) + ' cm');
+        debug.steps.push('bounds: X[' + prof.bounds.xMin.toFixed(2) + ',' + prof.bounds.xMax.toFixed(2) + '] Y[' + prof.bounds.yMin.toFixed(2) + ',' + prof.bounds.yMax.toFixed(2) + ']');
+        var thickSamples = [];
+        for (var pi = 0; pi < prof.points.length; pi += Math.max(1, Math.floor(prof.points.length / 6))) {
+            var s = prof.points[pi];
+            thickSamples.push('Y=' + s.y.toFixed(2) + ' h=' + s.thickness.toFixed(2));
+        }
+        debug.steps.push('épaisseurs: ' + thickSamples.join(' | '));
+
+        var st = sim.analyzeStructure(ppV);
+        debug.steps.push('');
+        debug.steps.push('--- analyzeStructure ---');
+        if (st) {
+            debug.steps.push('ancrées: ' + st.anchorSections.length + ' | libres: ' + st.freeSections.length);
+            debug.steps.push('pivot: (' + st.pivot.x.toFixed(3) + ', ' + st.pivot.y.toFixed(3) + ')');
+            debug.steps.push('leverArm: ' + (st.leverArm * 100).toFixed(2) + ' cm');
+            debug.steps.push('zWidth: ' + (st.zWidth * 100).toFixed(2) + ' cm');
+            if (st.freeSections && st.freeSections.length > 0) {
+                var minTh = Math.min.apply(null, st.freeSections.map(function(s){ return s.thickness; }));
+                debug.steps.push('épaisseur libre min = ' + minTh.toFixed(3) + ' cm');
+                maxW = sim.calculateMaxLoad();
+                debug.steps.push('maxWeight Sim2D = ' + maxW.toFixed(2) + ' kg');
+            } else {
+                debug.steps.push('⚠️ Aucune section libre');
+            }
+        }
+    } else {
+        debug.steps.push('profile points: ' + (prof && prof.points ? prof.points.length : 0));
+        debug.steps.push('⚠️ Profil vide !');
+    }
+
+    // === ÉTAPE 8 : GeometryAnalysisEngine (même pipeline que app élève) ===
+    // App élève exécute TOUJOURS GAE. Si Sim2D a donné un résultat, il remplace maxWeight.
+    if (window.GeometryAnalysisEngine) {
+        try {
+            debug.steps.push('');
+            debug.steps.push('--- GeometryAnalysisEngine ---');
+            var engine = new GeometryAnalysisEngine();
+            engine.tableThickness = tableT; // adapter à l'épaisseur de la fente
+            var gaeResult = engine.simulateWithHangingPoint(rawGeom, mPos, mRot, ppV, 10);
+            var gaeWeight = gaeResult.maxWeight;
+            debug.steps.push('criticalRatio = ' + ((gaeResult.stressAnalysis.stressMap.filter(function(s){return !s.inAnchorZone && s.stress > gaeResult.stressAnalysis.maxStress*0.8}).length / Math.max(1,gaeResult.stressAnalysis.stressMap.filter(function(s){return !s.inAnchorZone}).length))*100).toFixed(1) + '%');
+            debug.steps.push('leverArm GAE = ' + (gaeResult.stressAnalysis.leverArm || 0).toFixed(1) + ' cm');
+            debug.steps.push('maxWeight GAE = ' + gaeWeight.toFixed(2) + ' kg');
+
+            if (maxW > 0.5) {
+                // Sim2D a fonctionné → on le garde (comme l'élève quand Sim2D marche)
+                gaeWeight = maxW; // Sim2D prime
+                debug.steps.push('→ Sim2D OK = ' + maxW.toFixed(2) + ' → utilisé');
+            } else {
+                // Sim2D vide → GAE prend le relais (comme l'élève)
+                maxW = gaeWeight;
+                debug.method = 'GeometryAnalysisEngine (Sim2D vide)';
+                debug.steps.push('→ Sim2D vide → GAE utilisé = ' + maxW.toFixed(2) + ' kg');
+            }
+        } catch(e) {
+            debug.steps.push('❌ Erreur GAE: ' + e.message);
+        }
+    }
+
+    // --- Cleanup ---
+    sim.stopAnimation(); sim.hide();
+    if (sim.window && sim.window.parentNode) sim.window.parentNode.removeChild(sim.window);
+    hc.innerHTML = '';
+    rawGeom.dispose();
+
+    debug.maxWeight = maxW;
+    // Stocker les paramètres de scène pour le rendu 3D
+    var sceneParams = {
+        rotation: { x: mRot.x, y: mRot.y, z: mRot.z },
+        position: { x: mPos.x, y: mPos.y, z: mPos.z },
+        tableThickness: tableT,
+        hangingPoint: { x: ppV.x, y: ppV.y, z: ppV.z },
+        greenPointWorld: { x: gpWorld.x, y: gpWorld.y, z: gpWorld.z }
+    };
+    return { dimensions: dims, slotHeight: ar.slotHeight, maxWeight: Math.round(maxW * 10) / 10, debug: debug, sceneParams: sceneParams };
+}
+
+// === Grading ===
+function grade(sim, c) {
+    var pd = [sim.dimensions.x, sim.dimensions.y, sim.dimensions.z].sort(function(a,b){return a-b});
+    var pending = sim.maxWeight < 0;
+
+    // === Dimensions : pénalité cumulative par dépassement ===
+    var dimPenalty = 0;
+    for (var i = 0; i < 3; i++) {
+        if (pd[i] > c.maxDims[i]) {
+            dimPenalty += (pd[i] - c.maxDims[i]) / c.dimPenStep;
+        }
+    }
+    dimPenalty = Math.floor(dimPenalty * 10) / 10; // arrondi 1 décimale
+    var dimOk = dimPenalty === 0;
+    var sDim = Math.max(0, Math.round((c.ptsDim - dimPenalty) * 10) / 10);
+
+    // === Fente : pénalité par mm d'écart ===
+    var slotDev = 0;
+    if (sim.slotHeight < c.slotMin) slotDev = c.slotMin - sim.slotHeight;
+    else if (sim.slotHeight > c.slotMax) slotDev = sim.slotHeight - c.slotMax;
+    var slotOk = slotDev === 0;
+    var slotPenalty = slotDev / c.slotPenStep;
+    var sSlot = Math.max(0, Math.round((c.ptsSlot - slotPenalty) * 10) / 10);
+
+    // === Poids : lié à l'écart de fente ===
+    // Multiplicateur : 1.0 si fente OK → minMult si écart = maxDev
+    var t = Math.min(slotDev / c.slotWeightMaxDev, 1);
+    var weightMult = 1 - t * (1 - c.slotWeightMinMult);
+    var effectiveWeight = pending ? 0 : sim.maxWeight * weightMult;
+    var wOk = pending ? false : effectiveWeight >= c.targetWeight;
+    var sW;
+    if (pending) {
+        sW = 0;
+    } else if (wOk) {
+        sW = c.ptsWeight;
+    } else {
+        sW = Math.round(effectiveWeight / c.targetWeight * c.ptsWeight * 10) / 10;
+    }
+    sW = Math.min(sW, c.ptsWeight);
+
+    var total = Math.round((sDim + sSlot + sW) * 10) / 10;
+    var maxPts = c.ptsDim + c.ptsSlot + c.ptsWeight;
+
+    return { dimOk:dimOk, slotOk:slotOk, wOk:wOk, sDim:sDim, sSlot:sSlot, sW:sW,
+        total:total, maxPts:maxPts, pct: maxPts>0 ? Math.round(total/maxPts*100) : 0,
+        sortedDims:pd, maxDims:c.maxDims, dimPenalty:dimPenalty, slotDev:slotDev,
+        weightMult:weightMult, effectiveWeight:effectiveWeight };
+}
+
+// === SVG Cross-section ===
+// === 3D Thumbnail (static render for cards) ===
+function renderThumbnail(canvas, ab, sp) {
+    var w = canvas.clientWidth || 340, h = canvas.clientHeight || 180;
+    canvas.width = w * 2; canvas.height = h * 2;
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(w, h); renderer.setPixelRatio(2);
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1525);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    var dl = new THREE.DirectionalLight(0xffffff, 0.8);
+    dl.position.set(5, 10, 7); scene.add(dl);
+
+    // Table
+    var tG = new THREE.BoxGeometry(15, sp.tableThickness, 10);
+    var tM = new THREE.Mesh(tG, new THREE.MeshStandardMaterial({color:0x8B7355,transparent:true,opacity:0.6}));
+    tM.position.set(-7.5, sp.tableThickness/2, 0); scene.add(tM);
+    // Edge
+    var eM = new THREE.Mesh(new THREE.BoxGeometry(0.05,sp.tableThickness+0.2,12), new THREE.MeshBasicMaterial({color:0xf1c40f,transparent:true,opacity:0.7}));
+    eM.position.set(0, sp.tableThickness/2, 0); scene.add(eM);
+    // STL
+    var geom = STLParser.parse(ab); geom.center(); geom.computeVertexNormals();
+    var mesh = new THREE.Mesh(geom, new THREE.MeshStandardMaterial({color:0xFFC107,roughness:0.5,metalness:0.3,side:THREE.DoubleSide}));
+    mesh.scale.set(0.1,0.1,0.1);
+    mesh.rotation.set(sp.rotation.x, sp.rotation.y, sp.rotation.z);
+    mesh.position.set(sp.position.x, sp.position.y, sp.position.z);
+    scene.add(mesh);
+    // Hanging point arrow
+    var hpM = new THREE.MeshBasicMaterial({color:0xe74c3c});
+    var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2,8), hpM);
+    shaft.position.set(sp.hangingPoint.x, sp.hangingPoint.y-1, sp.hangingPoint.z); scene.add(shaft);
+    var cone = new THREE.Mesh(new THREE.ConeGeometry(0.15,0.4,8), hpM);
+    cone.rotation.x = Math.PI;
+    cone.position.set(sp.hangingPoint.x, sp.hangingPoint.y-2.2, sp.hangingPoint.z); scene.add(cone);
+    // Camera
+    var cam = new THREE.PerspectiveCamera(45, w/h, 0.1, 200);
+    var bb = new THREE.Box3().setFromObject(mesh);
+    var center = new THREE.Vector3(); bb.getCenter(center);
+    var size = bb.getSize(new THREE.Vector3());
+    var dist = Math.max(size.x, size.y, size.z) * 2.5;
+    cam.position.set(center.x+dist*0.6, center.y+dist*0.4, center.z+dist*0.8);
+    cam.lookAt(center);
+
+    renderer.render(scene, cam);
+    scene.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});
+    geom.dispose(); renderer.dispose();
+}
+
+// === SimViewer via iframe (vrai sac-sim) ===
+var embedIframe = null;
+var embedResultIdx = null;
+var embedLastWeight = null;
+
+// === Batch processing via hidden iframe ===
+var batchQueue = [];
+var batchProcessing = false;
+var batchIframe = null;
+
+function ensureBatchIframe() {
+    if (batchIframe) return batchIframe;
+    var iframe = document.createElement('iframe');
+    iframe.id = 'batchEmbed';
+    iframe.src = 'sim-embed.html';
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;height:600px;border:none;opacity:0;pointer-events:none';
+    document.body.appendChild(iframe);
+    batchIframe = iframe;
+    return iframe;
+}
+
+function processNextInQueue() {
+    if (!batchQueue.length) {
+        batchProcessing = false;
+        progB.style.width = '100%';
+        progT.textContent = '✅ Correction terminée — ' + results.length + ' fichier(s)';
+        btnSim.disabled = false;
+        updateSummary();
+        return;
+    }
+    batchProcessing = true;
+    var item = batchQueue[0];
+    var total = results.filter(function(r){return !r.error}).length;
+    var done = total - batchQueue.length;
+    progT.textContent = '🔬 Simulation ' + item.fileName + ' (' + (done+1) + '/' + total + ')…';
+    progB.style.width = (50 + done / total * 50) + '%';
+
+    var item = batchQueue.shift();
+
+    // Envoyer au batch iframe
+    batchIframe.contentWindow.postMessage({
+        type: 'loadSTL',
+        arrayBuffer: item.arrayBuffer,
+        fileName: item.fileName,
+        analysis: item.analysis,
+        index: item.index
+    }, '*');
+}
+
+// Écouter les messages de l'iframe (batch + lightbox)
+window.addEventListener('message', function(e) {
+    var msg = e.data;
+    if (!msg) return;
+
+    if (msg.type === 'simResult' && msg.maxWeight !== undefined) {
+        var w = Math.round(msg.maxWeight * 10) / 10;
+        var idx = msg.index;
+        console.log('📨 Résultat iframe:', w, 'kg', msg.fileName, 'idx='+idx);
+
+        // Mettre à jour la carte (batch ou lightbox)
+        if (idx !== undefined && idx !== null && results[idx]) {
+            var r = results[idx];
+            if (r.simResult) {
+                r.simResult.maxWeight = w;
+                r.screenshot = msg.screenshot || null;
+                r.grades = grade(r.simResult, cfg());
+                updateCard(idx, cfg());
+            }
+        }
+
+        // Si c'est le batch → fichier suivant
+        if (batchProcessing) {
+            processNextInQueue();
+            return;
+        }
+
+        // Lightbox : stocker aussi pour compatibilité
+        embedLastWeight = w;
+    }
+});
+
+// === Lightbox ===
+function openLightbox3D(title, ab, ar, resultIdx) {
+    lbTitle.textContent = title;
+    lbSvg.innerHTML = '';
+    document.getElementById('lbPanel').style.display = 'none';
+    lightbox.classList.add('open');
+
+    embedResultIdx = resultIdx;
+    embedLastWeight = null;
+
+    // Créer l'iframe
+    var iframe = document.createElement('iframe');
+    iframe.id = 'simEmbed';
+    iframe.src = 'sim-embed.html';
+    iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px';
+    lbSvg.appendChild(iframe);
+    embedIframe = iframe;
+
+    // Quand l'iframe est prête, envoyer le buffer + l'analyse + l'index
+    iframe.addEventListener('load', function() {
+        setTimeout(function() {
+            iframe.contentWindow.postMessage({
+                type: 'loadSTL',
+                arrayBuffer: ab,
+                fileName: title,
+                analysis: ar,
+                index: resultIdx
+            }, '*');
+        }, 500);
+    });
+}
+
+// Pas besoin de computeSceneParams — l'API fait tout dans l'iframe
+
+function closeLightbox3D() {
+    // Les cartes sont déjà mises à jour en temps réel via postMessage
+    embedIframe = null;
+    embedResultIdx = null;
+    embedLastWeight = null;
+    lbSvg.innerHTML = '';
+    document.getElementById('lbPanel').style.display = '';
+    document.getElementById('lbPanel').innerHTML = '';
+    lightbox.classList.remove('open');
+}
+
+// === Rotation & Re-analyse ===
+
+// Créer un buffer STL binaire avec les vertices tournés
+function rotateSTLBuffer(ab, rx, ry, rz) {
+    var geom = STLParser.parse(ab);
+    var pos = geom.attributes.position;
+    var n = pos.count;
+    var euler = new THREE.Euler(rx, ry, rz);
+    var v = new THREE.Vector3();
+
+    // Rotate all vertices
+    var newPos = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) {
+        v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+        v.applyEuler(euler);
+        newPos[i*3] = v.x; newPos[i*3+1] = v.y; newPos[i*3+2] = v.z;
+    }
+
+    // Write binary STL
+    var numTri = n / 3;
+    var bufLen = 80 + 4 + numTri * 50;
+    var out = new ArrayBuffer(bufLen);
+    var dv = new DataView(out);
+    // Header (80 bytes zeroed)
+    dv.setUint32(80, numTri, true);
+    var off = 84;
+    var a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    var e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), norm = new THREE.Vector3();
+    for (var t = 0; t < numTri; t++) {
+        var i0 = t*3;
+        a.set(newPos[i0*3], newPos[i0*3+1], newPos[i0*3+2]);
+        b.set(newPos[(i0+1)*3], newPos[(i0+1)*3+1], newPos[(i0+1)*3+2]);
+        c.set(newPos[(i0+2)*3], newPos[(i0+2)*3+1], newPos[(i0+2)*3+2]);
+        e1.subVectors(b, a); e2.subVectors(c, a);
+        norm.crossVectors(e1, e2).normalize();
+        // Normal
+        dv.setFloat32(off, norm.x, true); off += 4;
+        dv.setFloat32(off, norm.y, true); off += 4;
+        dv.setFloat32(off, norm.z, true); off += 4;
+        // Vertex 1, 2, 3
+        dv.setFloat32(off, a.x, true); off += 4;
+        dv.setFloat32(off, a.y, true); off += 4;
+        dv.setFloat32(off, a.z, true); off += 4;
+        dv.setFloat32(off, b.x, true); off += 4;
+        dv.setFloat32(off, b.y, true); off += 4;
+        dv.setFloat32(off, b.z, true); off += 4;
+        dv.setFloat32(off, c.x, true); off += 4;
+        dv.setFloat32(off, c.y, true); off += 4;
+        dv.setFloat32(off, c.z, true); off += 4;
+        // Attribute byte count
+        dv.setUint16(off, 0, true); off += 2;
+    }
+    geom.dispose();
+    return out;
+}
+
+// 24 orientations du cube (toutes les faces × 4 rotations par face)
+var ORIENTATIONS_24 = [];
+(function() {
+    var R = Math.PI / 2;
+    // 6 faces: identité, +X, -X, +Y, -Y, +Z retourné
+    var faces = [
+        [0,0,0], [R,0,0], [-R,0,0], [0,0,R], [0,0,-R], [R*2,0,0]
+    ];
+    // 4 rotations autour de l'axe Z pour chaque face
+    for (var f = 0; f < faces.length; f++) {
+        for (var r = 0; r < 4; r++) {
+            ORIENTATIONS_24.push([faces[f][0], faces[f][1] + r * R, faces[f][2]]);
+        }
+    }
+})();
+
+// Re-analyser en essayant toutes les orientations
+function reanalyzeAllOrientations(ab, fileName) {
+    var best = null, bestScore = -1;
+
+    for (var i = 0; i < ORIENTATIONS_24.length; i++) {
+        var ori = ORIENTATIONS_24[i];
+        try {
+            var rotBuf = rotateSTLBuffer(ab, ori[0], ori[1], ori[2]);
+            var result = STLBackpackAnalyzer.analyzeBuffer(rotBuf, fileName);
+            if (!result.success) continue;
+
+            // Score : on veut une fente bien détectée (hauteur raisonnable + bons points)
+            var score = 0;
+            if (result.slotHeight >= 10 && result.slotHeight <= 40) score += 50;
+            if (result.crossSection && result.crossSection.polygon && result.crossSection.polygon.length > 3) score += 30;
+            // Bonus si la fente est dans les dimensions typiques
+            var dims = [result.dimensions.x, result.dimensions.y, result.dimensions.z].sort(function(a,b){return a-b});
+            if (dims[2] >= 60 && dims[2] <= 120) score += 20;
+
+            if (score > bestScore) {
+                bestScore = score;
+                best = { analysis: result, orientation: ori, rotatedBuffer: rotBuf, score: score };
+            }
+        } catch(e) { /* skip */ }
+    }
+    return best;
+}
+
+// Appliquer une rotation de 90° et re-simuler une carte
+function updateSummary() {
+    var passN=0, warnN=0, failN=0, totalScore=0, gradedN=0;
+    results.forEach(function(r) {
+        if (r.error) { failN++; return; }
+        var g = r.grades;
+        totalScore += g.pct; gradedN++;
+        if (g.pct>=80) passN++; else if(g.pct>=40) warnN++; else failN++;
+    });
+    document.getElementById('sumAvg').textContent = gradedN ? Math.round(totalScore/gradedN)+' %' : '—';
+    document.getElementById('sumPass').textContent = passN;
+    document.getElementById('sumWarn').textContent = warnN;
+    document.getElementById('sumFail').textContent = failN;
+    document.getElementById('sumTotal').textContent = results.length;
+}
+
+// === Render ===
+function renderCards(c) {
+    cardsGrid.innerHTML = ''; cardsGrid.classList.add('visible');
+
+    // Tri alphabétique par nom de fichier
+    var sortedIndices = results.map(function(r, i){ return i; });
+    sortedIndices.sort(function(a, b){
+        return results[a].fileName.localeCompare(results[b].fileName, 'fr', {sensitivity:'base'});
+    });
+
+    sortedIndices.forEach(function(idx) {
+        var r = results[idx];
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-idx', idx);
+
+        if (r.error) {
+            card.innerHTML =
+                '<div class="card-body">'+
+                '<div class="card-hdr"><span class="card-score cs-fail">ERR</span><span class="card-name" title="'+esc(r.fileName)+'">'+esc(r.fileName)+'</span></div>'+
+                '<div class="card-err">\u26a0\ufe0f '+esc(r.error)+'</div>'+
+                '</div>';
+        } else {
+            var g = r.grades, sim = r.simResult;
+            var pending = sim.maxWeight < 0;
+            var cls = pending ? 'cs-pending' : (g.pct>=80?'cs-pass':g.pct>=40?'cs-warn':'cs-fail');
+            var buf = r.rotatedBuffer || r.arrayBuffer;
+
+            var thumbHtml;
+            if (r.screenshot) {
+                thumbHtml = '<img src="'+r.screenshot+'" style="width:100%;height:100%;object-fit:contain">';
+            } else if (pending) {
+                thumbHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8892b0;font-size:11px">\u23f3</div>';
+            } else {
+                thumbHtml = '<canvas style="width:100%;height:100%"></canvas>';
+            }
+
+            card.innerHTML =
+                '<div class="card-thumb" data-thumb-idx="'+idx+'">'+thumbHtml+'</div>'+
+                '<div class="card-body">'+
+                    '<div class="card-hdr">'+
+                        '<span class="card-score '+cls+'">'+(pending ? '\u23f3' : g.total+' / '+g.maxPts)+'</span>'+
+                        '<span class="card-name" title="'+esc(r.fileName)+'">'+esc(r.fileName)+'</span>'+
+                    '</div>'+
+                    '<div class="card-rows">'+
+                        crow('\ud83d\udcd0 Dimensions',
+                            g.sortedDims.map(function(d){return d.toFixed(1)}).join(' \u00d7 ')+' mm',
+                            g.sDim, c.ptsDim, g.dimOk, dimSub(g, c))+
+                        crow('\ud83d\udccf Haut. fente',
+                            sim.slotHeight.toFixed(1)+' mm',
+                            g.sSlot, c.ptsSlot, g.slotOk, slotSub(g, c))+
+                        crow('\ud83c\udf92 Poids max',
+                            weightVal(sim, g, pending),
+                            pending ? 0 : g.sW, c.ptsWeight, pending ? false : g.wOk,
+                            weightSub(g, c, pending))+
+                    '</div>'+
+                '</div>';
+
+            // Old-style canvas thumbnail (fallback if no screenshot and not pending)
+            if (!r.screenshot && !pending && sim.sceneParams && buf) {
+                var canvasEl = card.querySelector('.card-thumb canvas');
+                if (canvasEl) {
+                    try { renderThumbnail(canvasEl, buf, sim.sceneParams); } catch(e) {}
+                }
+            }
+
+            // Click thumbnail -> lightbox
+            var thumbDiv = card.querySelector('.card-thumb');
+            if (thumbDiv && !pending) {
+                (function(name, abuf, analysis, rIdx) {
+                    thumbDiv.addEventListener('click', function() {
+                        openLightbox3D(name, abuf, analysis, rIdx);
+                    });
+                })(r.fileName, buf, r.analysis, idx);
+            }
+        }
+        cardsGrid.appendChild(card);
+    });
+
+    summaryBar.classList.add('visible');
+    updateSummary();
+}
+
+// Mettre a jour une seule carte (resultat iframe)
+function updateCard(idx, c) {
+    var r = results[idx];
+    if (!r || r.error) return;
+    var card = cardsGrid.querySelector('[data-idx="'+idx+'"]');
+    if (!card) return;
+
+    var g = r.grades, sim = r.simResult;
+    var cls = g.pct>=80?'cs-pass':g.pct>=40?'cs-warn':'cs-fail';
+
+    // Score
+    var scoreEl = card.querySelector('.card-score');
+    if (scoreEl) { scoreEl.className = 'card-score '+cls; scoreEl.textContent = g.total+' / '+g.maxPts; }
+
+    // Vignette
+    var thumbDiv = card.querySelector('.card-thumb');
+    if (thumbDiv && r.screenshot) {
+        thumbDiv.innerHTML = '<img src="'+r.screenshot+'" style="width:100%;height:100%;object-fit:contain">';
+        var buf = r.rotatedBuffer || r.arrayBuffer;
+        (function(name, abuf, analysis, rIdx) {
+            thumbDiv.addEventListener('click', function() {
+                openLightbox3D(name, abuf, analysis, rIdx);
+            });
+        })(r.fileName, buf, r.analysis, idx);
+    }
+
+    // Lignes de donnees
+    var rows = card.querySelector('.card-rows');
+    if (rows) {
+        rows.innerHTML =
+            crow('\ud83d\udcd0 Dimensions',
+                g.sortedDims.map(function(d){return d.toFixed(1)}).join(' \u00d7 ')+' mm',
+                g.sDim, c.ptsDim, g.dimOk, dimSub(g, c))+
+            crow('\ud83d\udccf Haut. fente',
+                sim.slotHeight.toFixed(1)+' mm',
+                g.sSlot, c.ptsSlot, g.slotOk, slotSub(g, c))+
+            crow('\ud83c\udf92 Poids max',
+                weightVal(sim, g, false),
+                g.sW, c.ptsWeight, g.wOk,
+                weightSub(g, c, false));
+    }
+
+    updateSummary();
+}
+
+function crow(label, val, pts, maxPts, ok, sub) {
+    var cls = ok?'p-pass':(pts>0?'p-part':'p-fail');
+    var icon = ok?'\u2713':(pts>0?'~':'\u2717');
+    var ptsStr = pts === Math.round(pts) ? ''+pts : pts.toFixed(1);
+    return '<div class="crow">'+
+        '<span class="crow-label">'+label+'</span>'+
+        '<span class="crow-val">'+val+(sub?'<span class="dim-sub">'+sub+'</span>':'')+'</span>'+
+        '<span class="crow-pts '+cls+'">'+icon+' '+ptsStr+'/'+maxPts+'</span>'+
+    '</div>';
+}
+
+// Générer les sous-textes enrichis pour chaque critère
+function dimSub(g, c) {
+    var s = 'max '+g.maxDims.map(function(d){return d.toFixed(0)}).join(' \u00d7 ');
+    if (g.dimPenalty > 0) s += ' (\u2212'+g.dimPenalty.toFixed(1)+' pt)';
+    return s;
+}
+function slotSub(g, c) {
+    var s = c.slotMin+'\u2013'+c.slotMax+' mm';
+    if (g.slotDev > 0) s += ' (\u00e9cart '+g.slotDev.toFixed(1)+' mm)';
+    return s;
+}
+function weightSub(g, c, pending) {
+    var s = 'objectif '+c.targetWeight+' kg';
+    if (!pending && g.weightMult < 0.999) s += ' (\u00d7'+g.weightMult.toFixed(2)+' fente)';
+    return s;
+}
+function weightVal(sim, g, pending) {
+    if (pending) return '<span style="color:#f1c40f">\u23f3 En cours\u2026</span>';
+    var s = sim.maxWeight.toFixed(1)+' kg';
+    if (g.weightMult < 0.999) s += ' \u2192 '+g.effectiveWeight.toFixed(1)+' kg';
+    return s;
+}
+
+function esc(t) { var d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+// === Run ===
+btnSim.onclick = async function() {
+    if (!files.length) return;
+    var c = cfg(); results = []; batchQueue = [];
+    progC.classList.add('active'); progT.classList.add('active');
+    progB.style.width = '0%'; btnSim.disabled = true;
+
+    // === Phase 1 : Analyse rapide (dimensions, fente) — poids en attente ===
+    for (var i = 0; i < files.length; i++) {
+        var uf = files[i];
+        progT.textContent = 'Analyse de '+uf.name+' ('+(i+1)+'/'+files.length+')…';
+        progB.style.width = (i/files.length*50)+'%';  // 0-50% pour phase 1
+        await new Promise(function(r){setTimeout(r,30)});
+
+        var result;
+        try {
+            var analysis = STLBackpackAnalyzer.analyzeBuffer(uf.arrayBuffer, uf.name);
+            if (!analysis.success) {
+                result = { fileName:uf.name, error:analysis.error||'Analyse échouée', arrayBuffer:uf.arrayBuffer };
+            } else {
+                // Simulation rapide pour dimensions/fente SEULEMENT
+                var simR = simulate(uf.arrayBuffer, analysis);
+                simR.maxWeight = -1;  // -1 = en attente de l'iframe sac-sim
+                result = { fileName:uf.name, error:null, analysis:analysis, simResult:simR, grades:grade(simR,c), arrayBuffer:uf.arrayBuffer };
+                // Ajouter à la queue pour Phase 2
+                batchQueue.push({ index: i, arrayBuffer: uf.arrayBuffer, fileName: uf.name, analysis: analysis });
+            }
+        } catch(e) {
+            console.error(uf.name,e);
+            result = { fileName:uf.name, error:e.message||'Erreur inconnue', arrayBuffer:uf.arrayBuffer };
+        }
+        results.push(result);
+    }
+
+    // Afficher les cartes immédiatement (poids en attente)
+    progB.style.width = '50%';
+    renderCards(c);
+    btnCSV.disabled = false;
+
+    // === Phase 2 : Simulation via iframe sac-sim (séquentielle) ===
+    if (batchQueue.length) {
+        progT.textContent = '🔬 Simulation via sac-sim (0/'+batchQueue.length+')…';
+        var iframe = ensureBatchIframe();
+        batchProcessing = true;
+        var batchStarted = false;
+
+        // Handler pour embedReady
+        function onEmbedReady(ev) {
+            if (ev.data && ev.data.type === 'embedReady' && !batchStarted) {
+                batchStarted = true;
+                processNextInQueue();
+            }
+        }
+        window.addEventListener('message', onEmbedReady);
+
+        // Fallback: si embedReady ne vient pas dans 2.5s, forcer le démarrage
+        setTimeout(function() {
+            window.removeEventListener('message', onEmbedReady);
+            if (!batchStarted && batchQueue.length) {
+                batchStarted = true;
+                console.log('📋 Batch: forçage démarrage (timeout)');
+                processNextInQueue();
+            }
+        }, 2500);
+    } else {
+        progT.textContent = '✅ Correction terminée — '+results.length+' fichier(s)';
+        btnSim.disabled = false;
+    }
+};
+
+// === CSV ===
+btnCSV.onclick = function() {
+    if (!results.length) return;
+    var c = cfg(), S = ';';
+    var csv = ['Fichier','Dim1','Dim2','Dim3','Dims OK','Pts Dim','Haut fente (mm)','Fente OK','Pts Fente',
+               'Poids max (kg)','Poids OK','Pts Poids','Total','Max','%'].join(S)+'\n';
+    results.forEach(function(r) {
+        if (r.error) { csv += r.fileName+S+'ERREUR: '+r.error+'\n'; return; }
+        var g=r.grades, sim=r.simResult;
+        csv += [r.fileName,g.sortedDims[0].toFixed(1),g.sortedDims[1].toFixed(1),g.sortedDims[2].toFixed(1),
+            g.dimOk?'OUI':'NON',g.sDim,sim.slotHeight.toFixed(1),g.slotOk?'OUI':'NON',g.sSlot,
+            sim.maxWeight.toFixed(1),g.wOk?'OUI':'NON',g.sW,g.total,g.maxPts,g.pct].join(S)+'\n';
+    });
+    var blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'correction_sac_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+};
+
+})();
+</script>
+</body>
+</html>

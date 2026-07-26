@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Support Sac à Dos 3D</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0YTkwZDkiLz48cmVjdCB4PSI5IiB5PSIxMCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U5MWU2MyIvPjxyZWN0IHg9IjExIiB5PSIxNiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjciIHJ4PSIyIiBmaWxsPSIjYzIxODViIi8+PHBhdGggZD0iTTkgMTJRNiAxNCA3IDIwIiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTIzIDEyUTI2IDE0IDI1IDIwIiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTEzIDhRMTYgNSAxOSA4IiBzdHJva2U9IiNjMjE4NWIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGxpbmUgeDE9IjE0IiB5MT0iMTkiIHgyPSIxOCIgeTI9IjE5IiBzdHJva2U9IiNmOGJiZDkiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Écran de chargement -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Chargement du simulateur...</p>
+        </div>
+    </div>
+
+    <!-- Tutoriel de bienvenue -->
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div class="tutorial-content">
+            <h2>🎒 Bienvenue dans le Simulateur !</h2>
+            <div class="tutorial-steps">
+                <div class="tutorial-step active clickable" data-step="1" id="tutorialStep1">
+                    <div class="step-number">1</div>
+                    <h3>Importe ton fichier STL</h3>
+                    <p>Clique sur "Choisir un fichier" pour charger ton support de sac à dos</p>
+                </div>
+                <div class="tutorial-step" data-step="2">
+                    <div class="step-number">2</div>
+                    <h3>Positionne ton support</h3>
+                    <p>Utilise la souris pour faire pivoter la vue et positionner ton objet sur la table</p>
+                </div>
+                <div class="tutorial-step" data-step="3">
+                    <div class="step-number">3</div>
+                    <h3>Teste la résistance</h3>
+                    <p>Règle le poids du sac et lance la simulation pour voir si ton support résiste !</p>
+                </div>
+            </div>
+            <button id="closeTutorial" class="btn-primary btn-full-width">C'est parti ! 🚀</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <h1>🎒 Simulateur Support Sac à Dos</h1>
+            <div class="header-buttons">
+                <button id="settingsBtn" class="btn-icon" title="Réglages">
+                    <span>⚙️</span>
+                </button>
+                <button id="creditsBtn" class="btn-icon" title="Crédits">
+                    <span>❤️</span>
+                </button>
+                <button id="helpBtn" class="btn-icon" title="Aide">
+                    <span>❓</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Popup Réglages -->
+    <div id="settingsOverlay" class="settings-overlay hidden">
+        <div class="settings-content">
+            <button class="settings-close" id="closeSettings">×</button>
+            <div class="settings-icon">⚙️</div>
+            <h2>Réglages</h2>
+            
+            <div class="settings-section">
+                <label class="settings-label">Matériau du support :</label>
+                <select id="materialSelect" class="settings-select">
+                    <option value="pla">PLA (plastique imprimé 3D)</option>
+                    <option value="wood">Bois</option>
+                    <option value="metal">Métal</option>
+                    <option value="custom">Personnalisé...</option>
+                </select>
+                
+                <div class="material-info">
+                    <span class="material-label">Coefficient de résistance :</span>
+                    <div class="material-value-container">
+                        <input type="number" id="materialCoefficient" class="material-coefficient" value="1.0" min="0.1" max="10" step="0.1" readonly>
+                        <span class="material-unit">×</span>
+                    </div>
+                </div>
+                
+                <p class="settings-hint" id="materialHint">Le PLA est le matériau standard pour l'impression 3D</p>
+            </div>
+            
+            <button id="closeSettingsBtn" class="btn-primary">Appliquer</button>
+        </div>
+    </div>
+
+    <!-- Popup Crédits -->
+    <div id="creditsOverlay" class="credits-overlay hidden">
+        <div class="credits-content">
+            <button class="credits-close" id="closeCredits">×</button>
+            <div class="credits-heart">❤️</div>
+            <h2>Soutenir ce projet</h2>
+            <p class="credits-text">Application créée par <strong>Max</strong>.</p>
+            <p class="credits-text">Si cette application vous plaît, vous pouvez soutenir mon travail ici :</p>
+            <p class="credits-text"><a href="https://fr.tipeee.com/maxtechno/" target="_blank" rel="noopener noreferrer" style="color: #4a90d9; text-decoration: none; font-weight: bold;">https://fr.tipeee.com/maxtechno/</a></p>
+            <p class="credits-text" style="margin-top: 15px;">Merci ! 🙏</p>
+            <button id="closeCreditsBtn" class="btn-primary">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="main-container">
+        <!-- Panneau latéral gauche -->
+        <aside class="sidebar left-sidebar">
+            <div class="panel">
+                <h2>📁 Chargement</h2>
+                <div class="file-upload-zone" id="fileUploadZone" style="padding: 15px; min-height: auto;">
+                    <input type="file" id="stlFileInput" accept=".stl" hidden>
+                    <button id="uploadBtn" class="btn-secondary" style="width: 100%; margin: 0;">Choisir un fichier STL</button>
+                </div>
+                <div id="fileInfo" class="file-info hidden">
+                    <div class="info-row">
+                        <span class="info-label">Fichier :</span>
+                        <span id="fileName" class="info-value"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Taille :</span>
+                        <span id="fileSize" class="info-value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🎯 Position</h2>
+                <h3 style="font-size: 14px; margin: 10px 0; color: #666;">📏 Épaisseur de la table</h3>
+                <div class="table-thickness-control">
+                    <label style="display: block;">
+                        <input type="range" id="tableThickness" min="0.1" max="10" value="2.1" step="0.1">
+                        <span id="tableThicknessValue" style="cursor: pointer; user-select: none;">2.1 cm</span>
+                    </label>
+                </div>
+                <div class="position-controls">
+                    <div class="axis-controls">
+                        <label>
+                            <span>X:</span>
+                            <input type="range" id="posX" min="-5" max="10" value="6" step="0.1">
+                            <span id="posXValue" class="editable-value">6.0</span>
+                        </label>
+                        <label>
+                            <span>Y:</span>
+                            <input type="range" id="posY" min="-5" max="5" value="2" step="0.05">
+                            <span id="posYValue" class="editable-value">2.00</span>
+                        </label>
+                        <label>
+                            <span>Z:</span>
+                            <input type="range" id="posZ" min="-10" max="20" value="10" step="0.1">
+                            <span id="posZValue" class="editable-value">10.0</span>
+                        </label>
+                    </div>
+                    <button class="position-btn" data-action="resetPosition">
+                        <span>↺</span>
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header-with-toggle">
+                    <h2>🔄 Rotation</h2>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="rotationFreeMode">
+                        <span>Libre</span>
+                    </label>
+                </div>
+                <div class="rotation-controls">
+                    <div class="axis-controls">
+                        <label>
+                            <span>X:</span>
+                            <input type="range" id="rotX" min="0" max="360" value="0" step="90">
+                            <span id="rotXValue" class="editable-value">0°</span>
+                        </label>
+                        <label>
+                            <span>Y:</span>
+                            <input type="range" id="rotY" min="0" max="360" value="0" step="90">
+                            <span id="rotYValue" class="editable-value">0°</span>
+                        </label>
+                        <label>
+                            <span>Z:</span>
+                            <input type="range" id="rotZ" min="0" max="360" value="0" step="90">
+                            <span id="rotZValue" class="editable-value">0°</span>
+                        </label>
+                    </div>
+                    <button class="position-btn" data-action="resetRotation">
+                        <span>↺</span>
+                        Réinitialiser rotation
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Zone de visualisation 3D -->
+        <main class="viewer-container">
+            <div id="canvas-container" class="canvas-container">
+                <!-- Le canvas Three.js sera inséré ici -->
+            </div>
+            
+            <!-- Bouton Recentrer en overlay -->
+            <button id="recenterBtn" class="recenter-overlay-btn" title="Recentrer la vue">
+                🎯
+            </button>
+            
+            <!-- Indicateurs de statut -->
+            <div class="status-indicators">
+                <div id="tableThicknessIndicator" class="table-thickness-indicator">
+                    <div class="indicator-icon">📐</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Épaisseur table</div>
+                        <div class="indicator-value" id="tableThicknessDisplay">2.1 cm</div>
+                    </div>
+                </div>
+                <div id="stabilityIndicator" class="stability-indicator">
+                    <div class="indicator-icon">⚖️</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Stabilité</div>
+                        <div class="indicator-value" id="stabilityValue">-</div>
+                    </div>
+                </div>
+                <div id="stressIndicator" class="stress-indicator">
+                    <div class="indicator-icon">⚖️</div>
+                    <div class="indicator-content">
+                        <div class="indicator-label">Poids max</div>
+                        <div class="indicator-value" id="stressValue">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contrôles de caméra -->
+            <div class="camera-controls">
+                <div class="control-hint">
+                    <span>🖱️ Clic gauche : tourner</span>
+                    <span>🔍 Molette/Clic droit : zoomer</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Panneau latéral droit -->
+        <aside class="sidebar right-sidebar">
+            <div class="panel">
+                <h2>⚖️ Simulation</h2>
+                <div class="hanging-point-section">
+                    <h3>📍 Point d'accrochage du sac</h3>
+                    <button id="selectHangingPointBtn" class="btn-secondary btn-large">
+                        <span>🎯</span>
+                        Cliquer sur le modèle pour placer le point
+                    </button>
+                </div>
+                
+                <div class="weight-control">
+                    <div class="weight-display">
+                        <div class="weight-icon">🎒</div>
+                        <div class="weight-value">
+                            <span id="weightValue">5.0</span>
+                            <span class="unit">kg</span>
+                        </div>
+                    </div>
+                    <input type="range" id="weightSlider" min="0" max="15" value="5" step="0.5" class="weight-slider">
+                    <div class="weight-labels">
+                        <span>0 kg</span>
+                        <span>15 kg</span>
+                    </div>
+                </div>
+
+                <button id="simulateBtn" class="btn-primary btn-large" disabled>
+                    <span>🔬</span>
+                    Lancer la simulation
+                </button>
+                
+                <div class="simulation-info" style="margin-top: 10px; font-size: 12px; color: #666;">
+                    La simulation va tester la stabilité du support ET visualiser les contraintes
+                </div>
+
+                <div id="simulationResults" class="simulation-results hidden">
+                    <div class="result-status" id="resultStatus">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                    <div class="result-details" id="resultDetails">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loader de simulation -->
+    <div id="simulationLoader" class="simulation-loader hidden">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <p>Analyse en cours...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="js/stlParser.js"></script>
+    <script src="js/geometryAnalysisEngine.js"></script>
+    <script src="js/simulation2D.js"></script>
+    <script src="js/physicsSimulator.js"></script>
+    <script src="js/viewer3d.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
