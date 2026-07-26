@@ -1,141 +1,81 @@
-# 🎒 Simulateur de Support de Sac à Dos
+# 🎒 SacSim — support de sac à dos : simulateur élève + correcteur
 
-Application web éducative permettant aux élèves de collège de tester virtuellement la résistance de leurs supports de sac à dos imprimés en 3D avant de les fabriquer.
+Application web pour un projet de technologie au collège : les élèves conçoivent un support
+qui se coince sur le bord d'une table pour y suspendre leur sac à dos, l'impriment en 3D, et
+testent sa résistance **avant** de le fabriquer.
 
-## 🎯 Objectif pédagogique
+Deux pages, **aucune installation** — on ouvre le fichier dans un navigateur, tout tourne en local.
 
-Cette application s'inscrit dans un projet de technologie où les élèves conçoivent et fabriquent un support permettant de suspendre un sac à dos au bord d'une table. Le simulateur leur permet de :
+| Page | Pour qui | Ce qu'elle fait |
+|---|---|---|
+| `index.html` | élèves | importer son STL, l'insérer sur la table en 3D, tester la résistance |
+| `correction.html` | professeur | déposer **tous** les STL de la classe → coupe de l'insertion, poids maximum, dimensions, **note /20**, export CSV |
 
-- Visualiser leur modèle 3D (fichier STL)
-- Tester virtuellement la résistance de leur design
-- Identifier les zones de fragilité
-- Optimiser leur conception avant impression 3D
+## Le principe : un seul moteur de calcul
 
-## ✨ Fonctionnalités
+`js/sectionEngine.js` est la **source de vérité unique**. Le simulateur élève et le correcteur
+l'appellent tous les deux : à géométrie et réglages identiques, ils affichent forcément le même
+chiffre. C'est le point qui rend la note défendable devant un élève.
 
-### Chargement et visualisation 3D
-- Import de fichiers STL
-- Visualisation interactive avec rotation et zoom
-- Positionnement du support sur une table virtuelle
+Tout se joue sur la **coupe 2D** du profil extrudé — pas de placement 3D approximatif :
 
-### Paramétrage
-- **Position** : Ajustement X, Y, Z du support
-- **Rotation** : Mode pas-à-pas (90°) ou libre (5°)
-- **Épaisseur de table** : Réglable de 1 à 5 cm
-- **Poids du sac** : Réglable de 1 à 10 kg
+1. **Coupe** — le maillage est tranché à plusieurs profondeurs, la tranche médiane fait foi.
+2. **Fente** — balayage de rayons pour trouver les vides qui débouchent ; les candidats sont
+   notés, pas pris au hasard.
+3. **Insertion** — le plateau se coince dans la fente selon `S·cos θ − G·sin θ = T`
+   (S = hauteur de fente, G = profondeur de prise, T = épaisseur du plateau).
+   Trop de jeu → le support bascule et décroche. Fente trop petite → il n'entre pas.
+4. **Résistance** — flexion d'Euler-Bernoulli section par section sur le bras libre, avec
+   inertie composée, correction de pente et **concentration de contrainte aux angles vifs**.
+   Un congé arrondi tient donc réellement mieux qu'une arête vive : la leçon est dans le calcul.
 
-### Simulation physique
-- Analyse basée sur les équations de flexion des poutres (Euler-Bernoulli)
-- Calcul du poids maximum supportable
-- Visualisation des zones de contrainte (gradient de couleur)
-- Détection du point de rupture potentiel
+## Le correcteur en pratique
 
-### Matériaux
-- **PLA** : Coefficient 1.0× (plastique impression 3D)
-- **Bois** : Coefficient 4.0×
-- **Métal** : Coefficient 8.0×
-- **Personnalisé** : Coefficient libre (0.1 à 10×)
+Les fichiers sont **corrigés dès leur dépôt**, sans clic. Changer un réglage relance le calcul.
 
-### Interface adaptée aux collégiens
-- Tutoriel de bienvenue
-- Messages clairs : "TIENT" / "VA CASSER"
-- Indicateurs visuels simples
-- Échelle de fragilité colorée
+Chaque carte montre la **coupe de l'insertion** — le support en place sur le plateau, coloré
+selon la contrainte, avec la section qui casserait en premier — et le détail de la note.
+Un clic sur la coupe ouvre la fiche complète (bras de levier, moment quadratique, congé, Kt,
+jeu, basculement, détail du barème).
 
-## 🚀 Installation
+### Quand la lecture automatique se trompe
 
-1. Cloner ou télécharger le projet
-2. Placer les fichiers sur un serveur web (Apache, Nginx, ou serveur local)
-3. Ouvrir `index.html` dans un navigateur moderne
+Le plan de coupe est trouvé de façon fiable, mais le sens d'insertion garde des ambiguïtés
+qu'aucune géométrie ne tranche seule. Deux boutons sur chaque carte :
 
-### Structure des fichiers
+- **↕** retourne le support haut/bas ;
+- **↻ i/n** passe à la lecture suivante de la pièce (ça la fait pivoter dans la table) ;
+- **auto** revient au choix automatique.
+
+Les corrections sont mémorisées par fichier, survivent à un recalcul, et le CSV en garde la trace.
+Les copies dont la lecture est douteuse sont bordées d'orange et comptées dans « À vérifier » :
+l'application préfère signaler un doute plutôt que d'afficher un chiffre faux.
+
+### Réglages
+
+Épaisseur du plateau (19 mm par défaut), tolérance d'ajustement, dimensions maximales,
+plage de hauteur de fente, poids visé, répartition des points, et **contrainte admissible**
+(20 MPa pour du PLA imprimé) — c'est ce dernier réglage qui rend l'épreuve plus ou moins sévère
+pour toute la classe.
+
+## Structure
 
 ```
-sac-sim/
-├── index.html
-├── README.md
-├── css/
-│   └── style.css
-└── js/
-    ├── app.js                    # Application principale
-    ├── viewer3d.js               # Visualisation Three.js
-    ├── stlParser.js              # Parseur de fichiers STL
-    ├── physicsSimulator.js       # Simulation physique
-    ├── geometryAnalysisEngine.js # Analyse géométrique
-    ├── simulation2D.js           # Simulation 2D (flexion)
-    └── ui.js                     # Gestion de l'interface
+index.html          simulateur élève (Three.js)
+correction.html     correcteur par lot
+sim-embed.html      simulateur embarquable (iframe, pour Éléa)
+css/style.css
+js/
+  sectionEngine.js          ← moteur unique : coupe, insertion, résistance, rendu SVG
+  app.js                    application élève
+  viewer3d.js               scène 3D
+  stlParser.js              lecture STL (binaire + ASCII)
+  simulation2D.js           vue en coupe animée
+  geometryAnalysisEngine.js coloration 3D des contraintes
+  ui.js
 ```
 
-## 📖 Utilisation
+## Crédits
 
-### Étape 1 : Charger un fichier STL
-Cliquer sur "Choisir un fichier STL" pour importer le modèle 3D du support.
-
-### Étape 2 : Positionner le support
-- Utiliser les sliders de position pour placer le support sur la table
-- Ajuster la rotation si nécessaire
-- Le support doit avoir une partie sur la table et une partie qui dépasse
-
-### Étape 3 : Définir le point d'accrochage
-Cliquer sur le modèle 3D à l'endroit où le sac sera accroché (généralement le point le plus bas du support).
-
-### Étape 4 : Lancer la simulation
-- Régler le poids du sac à tester
-- Cliquer sur "Lancer la simulation"
-- Observer les résultats et les zones colorées
-
-### Interprétation des résultats
-
-| Couleur | Signification |
-|---------|---------------|
-| 🔵 Bleu | Zone solide |
-| 🟢 Vert | Zone correcte |
-| 🟡 Jaune | Zone sous tension |
-| 🔴 Rouge | Zone fragile / risque de rupture |
-
-## ⚙️ Configuration avancée
-
-### Réglages (bouton ⚙️)
-Permet de changer le matériau simulé et ainsi ajuster les calculs de résistance.
-
-### Garde-fous
-L'application bloque la simulation si :
-- Le support n'est pas positionné sur la table
-- Le point d'accrochage n'est pas sur le support
-
-## 🛠️ Technologies utilisées
-
-- **Three.js** : Rendu 3D WebGL
-- **JavaScript ES6+** : Logique applicative
-- **CSS3** : Interface responsive
-- **HTML5** : Structure
-
-## 📐 Modèle physique
-
-La simulation utilise la théorie des poutres d'Euler-Bernoulli :
-
-- **Moment d'inertie** : `I = b × h³ / 12`
-- **Contrainte de flexion** : `σ = M × c / I`
-- **Déflexion** : `δ = F × L³ / (3 × E × I)`
-
-Où :
-- `b` = largeur de la section
-- `h` = épaisseur de la section
-- `M` = moment de flexion
-- `c` = distance au centre
-- `F` = force appliquée
-- `L` = bras de levier
-- `E` = module d'Young du matériau
-
-## 👥 Crédits
-
-- **Conception** : Max (enseignant de technologie)
-- **Développement** : Claude.ai (Anthropic)
-
-## 📄 Licence
-
-Application éducative à usage scolaire.
-
----
-
-*Application créée pour l'enseignement de la technologie au collège - Classes de 5ème, 4ème, 3ème*
+Conception : **Max**, professeur de technologie · Développement assisté par Claude (Anthropic).
+Application éducative à usage scolaire — 5ᵉ, 4ᵉ, 3ᵉ.
