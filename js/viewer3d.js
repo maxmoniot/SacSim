@@ -122,7 +122,7 @@ class Viewer3D {
         this.scene.add(axesHelper);
     }
 
-    createTable(thickness = 2.1) {
+    createTable(thickness = 1.9) {
         // Supprimer l'ancienne table si elle existe
         if (this.tableMesh) {
             this.scene.remove(this.tableMesh);
@@ -195,8 +195,8 @@ class Viewer3D {
         
         // Ajouter une ligne lumineuse sur le bord inférieur (zone d'insertion)
         const edgePoints = [
-            new THREE.Vector3(-150, 2.1, 0),
-            new THREE.Vector3(0, 2.1, 0)
+            new THREE.Vector3(-150, this.tableThickness || 1.9, 0),
+            new THREE.Vector3(0, this.tableThickness || 1.9, 0)
         ];
         const edgeGeometry = new THREE.BufferGeometry().setFromPoints(edgePoints);
         const edgeMaterial = new THREE.LineBasicMaterial({ 
@@ -220,7 +220,7 @@ class Viewer3D {
         context.fillStyle = '#4CAF50';
         context.font = 'Bold 40px Arial';
         context.textAlign = 'center';
-        context.fillText('2.1 cm', 128, 80);
+        context.fillText((this.tableThickness || 1.9).toFixed(1) + ' cm', 128, 80);
         
         const texture = new THREE.CanvasTexture(canvas);
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });

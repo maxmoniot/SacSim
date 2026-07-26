@@ -198,7 +198,7 @@ class BackpackSimulatorApp {
         
         thicknessSlider.addEventListener('input', (e) => {
             const newThickness = parseFloat(e.target.value);
-            const oldThickness = this.viewer.tableThickness || 2.1;
+            const oldThickness = this.viewer.tableThickness || 1.9;
             
             // Créer temporairement la nouvelle table
             this.viewer.createTable(newThickness);
@@ -313,11 +313,11 @@ class BackpackSimulatorApp {
         this.currentWeight = 5.0;
         
         // Réinitialiser l'épaisseur de la table
-        document.getElementById('tableThickness').value = 2.1;
-        document.getElementById('tableThicknessValue').textContent = '2.1 cm';
+        document.getElementById('tableThickness').value = 1.9;
+        document.getElementById('tableThicknessValue').textContent = '1.9 cm';
         const thicknessDisplay = document.getElementById('tableThicknessDisplay');
-        if (thicknessDisplay) thicknessDisplay.textContent = '2.1 cm';
-        this.viewer.createTable(2.1);
+        if (thicknessDisplay) thicknessDisplay.textContent = '1.9 cm';
+        this.viewer.createTable(1.9);
         
         // Cacher les résultats
         document.getElementById('simulationResults').classList.add('hidden');
@@ -382,10 +382,13 @@ class BackpackSimulatorApp {
             document.getElementById('posZ').value = 10;
             document.getElementById('posZValue').textContent = '10.0';
             
-            // Stocker le fichier et la géométrie
+            // Stocker le fichier et la géométrie.
+            // On garde le buffer brut : c'est lui que SectionEngine analyse pour
+            // calculer le poids maximum, exactement comme le fait le correcteur.
             this.currentSTLFile = {
                 file: file,
                 geometry: geometry,
+                arrayBuffer: arrayBuffer,
                 name: file.name
             };
             
@@ -499,7 +502,7 @@ class BackpackSimulatorApp {
         if (!this.viewer.stlMesh || !this.viewer.tableMesh) return false;
         
         const mesh = this.viewer.stlMesh;
-        const tableThickness = this.viewer.tableThickness || 2.1;
+        const tableThickness = this.viewer.tableThickness || 1.9;
         
         // La table est décalée de 0.1 vers le bas, donc son bas est à Y=-0.1
         // et son haut à Y=tableThickness - 0.1
@@ -662,7 +665,7 @@ class BackpackSimulatorApp {
         
         let hasVertexOnTable = false;
         const tableEdgeX = 0; // Bord de table à X = 0
-        const tableTopY = 2.1; // Dessus de table
+        const tableTopY = this.viewer.tableThickness || 1.9; // Dessus de table
         
         for (let i = 0; i < positions.count; i++) {
             // Position en coordonnées monde
@@ -745,6 +748,27 @@ class BackpackSimulatorApp {
         return isInBounds;
     }
 
+    /**
+     * Analyse la coupe du support avec SectionEngine — le moteur commun au
+     * simulateur et au correcteur. L'épaisseur de table est celle réglée par
+     * l'élève (le curseur, en cm) ; le coefficient de matériau agit sur la
+     * contrainte admissible du PLA (20 MPa par défaut).
+     */
+    analyzeSection() {
+        if (!window.SectionEngine || !this.currentSTLFile || !this.currentSTLFile.arrayBuffer) return null;
+        const tableMm = (this.viewer.tableThickness || 1.9) * 10;
+        try {
+            return SectionEngine.analyze(this.currentSTLFile.arrayBuffer, {
+                tableThickness: tableMm,
+                fitTolerance: 0.2,
+                material: { yield: 20 * this.materialCoefficient, k: 1 }
+            });
+        } catch (e) {
+            console.warn('SectionEngine :', e);
+            return null;
+        }
+    }
+
     async runSimulation() {
         if (!this.currentSTLFile) {
             this.ui.showToast('Erreur', 'Aucun fichier STL chargé', 'error');
@@ -790,7 +814,7 @@ class BackpackSimulatorApp {
         simDebug.push('meshPosition = (' + position.x.toFixed(3) + ', ' + position.y.toFixed(3) + ', ' + position.z.toFixed(3) + ')');
         simDebug.push('meshRotation = (' + (rotation.x*180/Math.PI).toFixed(1) + '°, ' + (rotation.y*180/Math.PI).toFixed(1) + '°, ' + (rotation.z*180/Math.PI).toFixed(1) + '°)');
         simDebug.push('meshScale = 0.1 (appliqué dans extractProfile)');
-        simDebug.push('tableThickness = 2.1 cm');
+        simDebug.push('tableThickness = ' + (this.viewer.tableThickness || 1.9).toFixed(2) + ' cm');
         if (this.viewer.hangingPoint) {
             const hp = this.viewer.hangingPoint;
             simDebug.push('hangingPoint = (' + hp.x.toFixed(3) + ', ' + hp.y.toFixed(3) + ', ' + hp.z.toFixed(3) + ')');
@@ -804,12 +828,14 @@ class BackpackSimulatorApp {
                 console.log('📐 Lancement de la simulation 2D...');
                 console.log('📐 Coefficient de matériau:', this.materialCoefficient);
                 
-                // Extraire le profil 2D
+                // Extraire le profil 2D (à l'épaisseur de table RÉELLE, pas une
+                // constante : sinon la vue en coupe ne correspond plus à la table
+                // affichée ni au calcul du correcteur)
                 const profile = this.simulation2D.extractProfile(
                     this.currentSTLFile.geometry,
                     position,
                     rotation,
-                    2.1 // Épaisseur de table
+                    this.viewer.tableThickness || 1.9
                 );
 
                 simDebug.push('');
@@ -891,6 +917,30 @@ class BackpackSimulatorApp {
                 result.maxWeight = result.maxWeight * this.materialCoefficient;
                 result.failureAnalysis.maxSafeWeight = result.failureAnalysis.maxSafeWeight * this.materialCoefficient;
                 console.log('📐 Poids max (géométrie avec coefficient):', result.maxWeight.toFixed(1), 'kg');
+            }
+
+            // === POIDS MAXIMUM : SectionEngine fait AUTORITÉ ===
+            // C'est le moteur unique, celui qu'utilise aussi le correcteur du prof.
+            // Les moteurs ci-dessus ne servent plus qu'à colorer les contraintes en 3D.
+            // Même pièce + même épaisseur de table ⇒ même chiffre des deux côtés.
+            const section = this.analyzeSection();
+            if (section) {
+                result.section = section;
+                if (section.ok) {
+                    result.maxWeight = section.maxWeight;
+                    if (result.failureAnalysis) result.failureAnalysis.maxSafeWeight = section.maxWeight;
+                    simDebug.push('');
+                    simDebug.push('── SectionEngine (moteur de référence) ──');
+                    simDebug.push('fente = ' + section.slot.height.toFixed(2) + ' mm / table = ' + section.insertion.tableThickness.toFixed(1) + ' mm');
+                    simDebug.push("s'insère = " + (section.insertion.fits ? 'oui' : 'NON') + ' | basculement = ' + section.insertion.tiltDeg.toFixed(1) + '°');
+                    if (section.strength && section.strength.ok) {
+                        simDebug.push('bras de levier = ' + section.strength.leverArm.toFixed(1) + ' mm');
+                        simDebug.push('section critique à x = ' + section.strength.critical.x.toFixed(1) + ' mm, e = ' + section.strength.critical.hTotal.toFixed(2) + ' mm');
+                    }
+                    simDebug.push('POIDS MAX = ' + section.maxWeight.toFixed(2) + ' kg');
+                } else {
+                    simDebug.push('SectionEngine : ' + section.error);
+                }
             }
         } else {
             console.error('❌ Moteur non disponible');
@@ -990,7 +1040,33 @@ class BackpackSimulatorApp {
             `;
         }
 
+        // === VUE EN COUPE : ce que voit aussi le professeur en corrigeant ===
+        const sec = result.section;
+        if (sec && sec.ok && window.SectionEngine) {
+            const ins = sec.insertion;
+            const verdict = !ins.fits
+                ? `<span style="color:#f44336">✗ La fente (${sec.slot.height.toFixed(1)} mm) est trop petite : le support n'entre pas sur la table de ${ins.tableThickness.toFixed(0)} mm.</span>`
+                : ins.slips
+                    ? `<span style="color:#f44336">✗ Trop de jeu : le support bascule de ${ins.tiltDeg.toFixed(0)}° et décroche.</span>`
+                    : `<span style="color:#4CAF50">✓ Le support se coince bien sur la table (jeu ${ins.clearance.toFixed(1)} mm, bascule ${ins.tiltDeg.toFixed(1)}°).</span>`;
+
+            detailsHTML += `
+                <div style="margin-top:14px">
+                    <p style="font-size:13px;font-weight:600;margin-bottom:6px">📐 Vue en coupe de l'insertion</p>
+                    <div style="background:#0c1120;border-radius:8px;padding:6px">
+                        <div style="height:150px">${SectionEngine.renderSVG(sec)}</div>
+                    </div>
+                    <p style="font-size:12px;margin-top:7px;line-height:1.5">${verdict}</p>
+                    <p style="font-size:12px;color:#888;margin-top:4px">
+                        La zone rouge est l'endroit qui casserait en premier.
+                    </p>
+                </div>
+            `;
+        }
+
         detailsDiv.innerHTML = detailsHTML;
+        const svgEl = detailsDiv.querySelector('svg');
+        if (svgEl) { svgEl.style.width = '100%'; svgEl.style.height = '100%'; }
         resultsDiv.classList.remove('hidden');
 
         // === DEBUG PANEL ===
@@ -1182,7 +1258,7 @@ class BackpackSimulatorApp {
             const min = parseFloat(thicknessSlider.min);
             const max = parseFloat(thicknessSlider.max);
             if (!isNaN(numValue) && numValue >= min && numValue <= max) {
-                const oldThickness = this.viewer.tableThickness || 2.1;
+                const oldThickness = this.viewer.tableThickness || 1.9;
                 
                 // Créer temporairement la nouvelle table
                 this.viewer.createTable(numValue);

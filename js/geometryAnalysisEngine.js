@@ -3,7 +3,7 @@
 
 class GeometryAnalysisEngine {
     constructor() {
-        this.tableThickness = 2.1;
+        this.tableThickness = 1.9;
         this.tableEdgeX = 0;
         
         // Seuils
