@@ -79,13 +79,13 @@ select{padding:8px 10px;background:var(--input);border:1px solid var(--bdr);bord
 .stat .l{font-size:11px;color:var(--dim);margin-top:1px}
 
 /* ---------- cartes ---------- */
-.grid{display:none;grid-template-columns:repeat(auto-fill,minmax(505px,1fr));gap:12px}
+.grid{display:none;grid-template-columns:repeat(auto-fill,minmax(575px,1fr));gap:12px}
 .grid.on{display:grid}
 .card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;display:flex;transition:.15s;border-left:3px solid transparent}
 .card:hover{border-color:var(--bdr2)}
 .card.check{border-left-color:var(--ora)}
 .card.nofit{border-left-color:var(--red)}
-.cut{width:190px;min-width:190px;background:#0c1120;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center}
+.cut{width:180px;min-width:180px;background:#0c1120;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center}
 .cut svg{width:100%;height:100%;display:block}
 .cut::after{content:'⤢';position:absolute;top:5px;right:7px;font-size:13px;color:#5b6484}
 .cut:hover::after{color:var(--acc)}
@@ -168,25 +168,37 @@ select{padding:8px 10px;background:var(--input);border:1px solid var(--bdr);bord
       </div>
 
       <div class="grp">
-        <h3><span>📐 Dimensions maximales</span><span class="pts"><input type="number" id="pDim" value="5" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
+        <h3><span>📐 Dimensions maximales</span><span class="pts"><input type="number" id="pDim" value="3" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
         <div class="row"><label>Longueur</label><input type="number" id="cDimA" value="100" min="1" step="1"><span class="unit">mm</span></div>
-        <div class="row"><label>Largeur</label><input type="number" id="cDimB" value="60" min="1" step="1"><span class="unit">mm</span></div>
+        <div class="row"><label>Largeur</label><input type="number" id="cDimB" value="80" min="1" step="1"><span class="unit">mm</span></div>
         <div class="row"><label>Épaisseur</label><input type="number" id="cDimC" value="30" min="1" step="1"><span class="unit">mm</span></div>
         <div class="row"><label>Dépassement</label><input type="number" id="cDimPen" value="0.5" min="0.1" step="0.1"><span class="unit">mm/pt</span></div>
       </div>
 
       <div class="grp">
-        <h3><span>📏 Hauteur de fente</span><span class="pts"><input type="number" id="pSlot" value="5" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
+        <h3><span>📏 Hauteur de fente</span><span class="pts"><input type="number" id="pSlot" value="2" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
         <div class="row"><label>Minimum</label><input type="number" id="cSlotMin" value="19" min="1" step="0.5"><span class="unit">mm</span></div>
         <div class="row"><label>Maximum</label><input type="number" id="cSlotMax" value="22" min="1" step="0.5"><span class="unit">mm</span></div>
         <div class="row"><label>Écart</label><input type="number" id="cSlotPen" value="1" min="0.1" step="0.1"><span class="unit">mm/pt</span></div>
       </div>
 
       <div class="grp">
-        <h3><span>🎒 Résistance</span><span class="pts"><input type="number" id="pWeight" value="10" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
-        <div class="row"><label>Poids visé</label><input type="number" id="cTarget" value="9" min="0.5" step="0.5"><span class="unit">kg</span></div>
+        <h3><span>🎒 Résistance</span><span class="pts"><input type="number" id="pWeight" value="3" min="0" max="20" step="0.5" class="ptsIn"> pts</span></h3>
+        <div class="row"><label>Poids visé</label><input type="number" id="cTarget" value="14" min="0.5" step="0.5"><span class="unit">kg</span></div>
         <div class="row"><label>Contrainte admissible</label><input type="number" id="cSigma" value="20" min="1" max="60" step="1"><span class="unit">MPa</span></div>
         <p class="hint">PLA imprimé : 20 MPa. Baisser cette valeur rend l'épreuve plus sévère pour toute la classe.</p>
+      </div>
+
+      <div class="grp">
+        <h3>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:11px;font-weight:700;color:var(--dim)">
+            <input type="checkbox" id="cPrintOn" checked style="accent-color:var(--acc);width:14px;height:14px;cursor:pointer">
+            <span>🖨️ IMPRESSION SANS SUPPORT</span>
+          </label>
+          <span class="pts"><input type="number" id="pPrint" value="2" min="0" max="20" step="0.5" class="ptsIn"> pts</span>
+        </h3>
+        <div class="row"><label>Surplomb toléré</label><input type="number" id="cOverhang" value="45" min="20" max="80" step="5"><span class="unit">°</span></div>
+        <p class="hint">Cherche s'il existe une orientation d'impression sans surplomb. Un profil vraiment extrudé, posé à plat, n'en a aucun.</p>
       </div>
 
     </div>
@@ -250,7 +262,7 @@ select{padding:8px 10px;background:var(--input);border:1px solid var(--bdr);bord
   </div>
 </div>
 
-<script src="js/sectionEngine.js"></script>
+<script src="js/sectionEngine.js?v=3"></script>
 <script>
 (function () {
 'use strict';
@@ -306,23 +318,26 @@ function cfg() {
         dimPen: num('cDimPen'),
         slotMin: num('cSlotMin'), slotMax: num('cSlotMax'), slotPen: num('cSlotPen'),
         target: num('cTarget'),
-        pDim: num('pDim'), pSlot: num('pSlot'), pWeight: num('pWeight')
+        printOn: $('cPrintOn').checked, overhang: num('cOverhang'),
+        pDim: num('pDim'), pSlot: num('pSlot'), pWeight: num('pWeight'), pPrint: num('pPrint')
     };
 }
 
 // ---------- barème ----------
 function grade(res, c) {
-    var maxPts = c.pDim + c.pSlot + c.pWeight;
+    var maxPts = c.pDim + c.pSlot + c.pWeight + (c.printOn ? c.pPrint : 0);
     var g = { maxPts: maxPts };
 
     if (!res.ok) {
-        g.dim = 0; g.slot = 0; g.weight = 0; g.total = 0; g.note = 0;
+        g.dim = 0; g.slot = 0; g.weight = 0; g.print = 0; g.total = 0; g.note = 0;
         return g;
     }
 
     // Dimensions : pénalité cumulée sur chaque cote qui dépasse
+    // le 0,01 mm absorbe le bruit de virgule flottante des cotes STL :
+    // sans lui, une pièce pile à 30,000001 mm serait comptée « hors gabarit »
     var d = res.dimensions.sorted, pen = 0;
-    for (var i = 0; i < 3; i++) if (d[i] > c.dims[i]) pen += (d[i] - c.dims[i]) / c.dimPen;
+    for (var i = 0; i < 3; i++) if (d[i] > c.dims[i] + 0.01) pen += (d[i] - c.dims[i]) / c.dimPen;
     g.dimPenalty = Math.round(pen * 10) / 10;
     g.dimOk = pen === 0;
     g.dim = Math.max(0, Math.round((c.pDim - pen) * 10) / 10);
@@ -339,7 +354,11 @@ function grade(res, c) {
     g.weightOk = res.maxWeight >= c.target;
     g.weight = Math.min(c.pWeight, Math.round(res.maxWeight / c.target * c.pWeight * 10) / 10);
 
-    g.total = Math.round((g.dim + g.slot + g.weight) * 10) / 10;
+    // Impression sans support : tout ou rien
+    g.printOk = !!(res.printing && res.printing.ok);
+    g.print = c.printOn ? (g.printOk ? c.pPrint : 0) : 0;
+
+    g.total = Math.round((g.dim + g.slot + g.weight + g.print) * 10) / 10;
     g.note = maxPts > 0 ? Math.round(g.total / maxPts * 20 * 10) / 10 : 0;
     return g;
 }
@@ -352,6 +371,7 @@ function analyzeOne(f, c) {
             tableThickness: c.table,
             fitTolerance: c.tol,
             material: { yield: c.sigma, k: 1 },   // σ admissible saisie directement
+            maxOverhang: c.overhang,
             variant: ov.variant || 0,
             flip: (ov.flip === true || ov.flip === false) ? ov.flip : undefined
         });
@@ -450,19 +470,41 @@ function render(c) {
     grid.innerHTML = ''; grid.classList.add('on');
     $('legend').style.display = 'flex';
 
+    // Chaque carte est isolée : si UNE copie fait planter l'affichage, elle
+    // devient une carte d'erreur au lieu de laisser la grille entière vide
+    // (c'est exactement le symptôme « corrigé mais rien ne s'affiche »).
     sortedResults().forEach(function (item) {
-        var r = item.res, g = item.grade;
-        var card = document.createElement('div');
-        card.className = 'card';
-
-        if (!r.ok) {
+        try {
+            renderCard(grid, item, c);
+        } catch (e) {
+            console.error('Affichage impossible pour', item.file, e);
+            var card = document.createElement('div');
+            card.className = 'card';
             card.innerHTML =
                 '<div class="cbody"><div class="ctop"><span class="cname">' + esc(item.name) + '</span>' +
-                '<span class="note n-ko">0 /20</span></div>' +
-                '<div class="cerr">⚠️ ' + esc(r.error) + '</div></div>';
+                '<span class="note n-ko">?</span></div>' +
+                '<div class="cerr">⚠️ Affichage impossible : ' + esc(e.message) + '<br>' +
+                '<span style="color:var(--dim);font-size:11px">Si ça persiste, recharger la page avec Ctrl+F5 (cache).</span></div></div>';
             grid.appendChild(card);
-            return;
         }
+    });
+
+    updateSummary();
+}
+
+function renderCard(grid, item, c) {
+    var r = item.res, g = item.grade;
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    if (!r.ok) {
+        card.innerHTML =
+            '<div class="cbody"><div class="ctop"><span class="cname">' + esc(item.name) + '</span>' +
+            '<span class="note n-ko">0 /20</span></div>' +
+            '<div class="cerr">⚠️ ' + esc(r.error) + '</div></div>';
+        grid.appendChild(card);
+        return;
+    }
 
         var flags = [];
         if (!r.insertion.fits) flags.push(['err', 'ne s\'insère pas']);
@@ -497,6 +539,9 @@ function render(c) {
                      c.slotMin + '–' + c.slotMax + ' mm', g.slot, c.pSlot, g.slotOk) +
                 crit('🎒 Résistance', r.maxWeight.toFixed(1) + ' kg',
                      'objectif ' + c.target + ' kg', g.weight, c.pWeight, g.weightOk) +
+                (c.printOn && r.printing ? crit('🖨️ Sans support', g.printOk ? 'oui' : 'non',
+                     g.printOk ? 'posé à plat' : 'porte-à-faux ' + r.printing.overhang.toFixed(0) + ' mm²',
+                     g.print, c.pPrint, g.printOk) : '') +
               '</div>' +
               (flags.length ? '<div class="flags">' + flags.map(function (fl) {
                   return '<span class="flag ' + fl[0] + '">' + esc(fl[1]) + '</span>';
@@ -507,16 +552,16 @@ function render(c) {
         card.querySelectorAll('.tbtn').forEach(function (b) {
             b.onclick = function (e) { e.stopPropagation(); tweak(item, b.dataset.act); };
         });
-        grid.appendChild(card);
-    });
-
-    updateSummary();
+    grid.appendChild(card);
 }
 
 function crit(label, value, sub, pts, max, ok) {
+    // l'icône suit les POINTS obtenus : afficher « ~ 3/3 » pour un écart de
+    // quelques millièmes de millimètre n'aurait aucun sens pour le prof
+    var full = pts >= max - 0.001;
     return '<div class="ci"><span class="l">' + label + '</span>' +
         '<span class="v">' + value + '</span><span class="s">' + sub + '</span>' +
-        '<span class="p ' + ptClass(pts, max, ok) + '">' + (ok ? '✓' : pts > 0 ? '~' : '✗') + ' ' + pts + '/' + max + '</span></div>';
+        '<span class="p ' + ptClass(pts, max, full) + '">' + (full ? '✓' : pts > 0 ? '~' : '✗') + ' ' + pts + '/' + max + '</span></div>';
 }
 
 function updateSummary() {
@@ -576,12 +621,21 @@ function openDetail(item, c) {
         ['Fiabilité de lecture', Math.round(r.confidence * 100) + ' %']
     ]));
 
-    blocks.push(box('Détail de la note', [
+    if (r.printing) blocks.push(box('Impression 3D', [
+        ['Sans support', g.printOk ? '✓ oui' : '✗ non'],
+        ['Pose', 'à plat sur la face de profil (la coupe = vue du dessus)'],
+        ['Porte-à-faux', mm(r.printing.overhang) + ' mm² par couche'],
+        ['Surplomb toléré', c.overhang + ' °']
+    ]));
+
+    var noteRows = [
         ['Dimensions', g.dim + ' / ' + c.pDim + (g.dimPenalty ? ' (−' + g.dimPenalty + ')' : '')],
         ['Hauteur de fente', g.slot + ' / ' + c.pSlot + (g.slotDev ? ' (écart ' + mm(g.slotDev) + ' mm)' : '')],
-        ['Résistance', g.weight + ' / ' + c.pWeight],
-        ['Total', '<b>' + g.total + ' / ' + g.maxPts + ' → ' + g.note + '/20</b>']
-    ]));
+        ['Résistance', g.weight + ' / ' + c.pWeight]
+    ];
+    if (c.printOn) noteRows.push(['Impression sans support', g.print + ' / ' + c.pPrint]);
+    noteRows.push(['Total', '<b>' + g.total + ' / ' + g.maxPts + ' → ' + g.note + '/20</b>']);
+    blocks.push(box('Détail de la note', noteRows));
 
     if (r.warnings.length) {
         blocks.push(box('Points de vigilance', r.warnings.map(function (w) { return ['⚠', w]; })));
@@ -617,12 +671,13 @@ $('bCsv').onclick = function () {
     var c = cfg(), S = ';';
     var lines = [['Fichier', 'Élève', 'Dim1 (mm)', 'Dim2 (mm)', 'Dim3 (mm)', 'Dims OK',
         'Fente (mm)', 'Fente OK', 'S\'insère', 'Basculement (°)', 'Poids max (kg)', 'Objectif atteint',
-        'Pts dim', 'Pts fente', 'Pts résistance', 'Total', 'Note /20', 'Fiabilité (%)', 'Lecture', 'Remarques'].join(S)];
+        'Sans support', 'Porte-à-faux (mm²/couche)',
+        'Pts dim', 'Pts fente', 'Pts résistance', 'Pts impression', 'Total', 'Note /20', 'Fiabilité (%)', 'Lecture', 'Remarques'].join(S)];
 
     sortedResults().forEach(function (it) {
         var r = it.res, g = it.grade;
         if (!r.ok) {
-            lines.push([it.file, it.name, '', '', '', '', '', '', '', '', '0', '', '0', '0', '0', '0', '0', '0', r.error].join(S));
+            lines.push([it.file, it.name, '', '', '', '', '', '', '', '', '0', '', '', '', '0', '0', '0', '0', '0', '0', '0', '', r.error].join(S));
             return;
         }
         lines.push([
@@ -633,7 +688,8 @@ $('bCsv').onclick = function () {
             r.insertion.fits ? (r.insertion.slips ? 'DÉCROCHE' : 'OUI') : 'NON',
             r.insertion.tiltDeg.toFixed(1),
             r.maxWeight.toFixed(1), g.weightOk ? 'OUI' : 'NON',
-            g.dim, g.slot, g.weight, g.total, g.note,
+            g.printOk ? 'OUI' : 'NON', r.printing ? r.printing.overhang.toFixed(1) : '',
+            g.dim, g.slot, g.weight, g.print, g.total, g.note,
             Math.round(r.confidence * 100),
             (r.variant + 1) + '/' + r.variantCount + (r.slot.flipped ? ' retournée' : '') + (isTweaked(it.file) ? ' (corrigée à la main)' : ''),
             r.warnings.join(' / ')

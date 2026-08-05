@@ -887,6 +887,9 @@ function analyze(arrayBuffer, opts) {
         maxWeight = 40;
     }
 
+    var printing = assessPrintability(parsed.triangles, bnd, chosen.axis, opts.maxOverhang);
+    if (!printing.ok) warnings.push('Impression : ' + printing.advice);
+
     var confidence = scoreConfidence(chosen, canon, strength, maxWeight);
 
     return {
@@ -915,6 +918,7 @@ function analyze(arrayBuffer, opts) {
             interference: placed.interference
         },
         strength: strength,
+        printing: printing,
         maxWeight: maxWeight,
         leverArm: strength.ok ? strength.leverArm : 0,
         geometry: {
@@ -930,6 +934,94 @@ function analyze(arrayBuffer, opts) {
     function fail(msg) {
         return { ok: false, error: msg, warnings: warnings, maxWeight: 0 };
     }
+}
+
+/**
+ * IMPRESSION SANS SUPPORT
+ * ----------------------
+ * La pose d'impression est CONNUE : la pièce s'imprime à plat sur sa face de
+ * profil (la coupe qu'on affiche est la vue du dessus de l'impression, le sens
+ * de l'extrusion est la hauteur des couches). C'est aussi la pose la plus
+ * solide : les couches encaissent la flexion dans leur plan.
+ *
+ * On empile donc des tranches successives le long de l'axe d'extrusion et on
+ * vérifie que chaque couche repose sur celle du dessous : de la matière qui
+ * apparaît au-delà de la tolérance à 45° (décalage horizontal > pas vertical)
+ * est un porte-à-faux → il faudrait des supports.
+ */
+function assessPrintability(triangles, bounds, axis, limitDeg) {
+    var others = ['x', 'y', 'z'].filter(function (a) { return a !== axis; });
+    var a1 = others[0], a2 = others[1];
+    var lo = bounds.min[axis], hi = bounds.max[axis], span = hi - lo;
+    var tolChain = Math.max(0.02, span * 1e-3);
+    var N = 14;                                        // tranches d'analyse
+    var dh = span / N;
+    var delta = dh * Math.tan((limitDeg || 45) * Math.PI / 180);   // décalage horizontal admissible
+
+    // tranches → boucles 2D
+    var slices = [];
+    for (var i = 0; i < N; i++) {
+        var h = lo + dh * (i + 0.5);
+        var segs = sliceTriangles(triangles, axis, h, a1, a2);
+        var loops = segs.length >= 3
+            ? chainLoops(segs, tolChain).filter(function (l) { return l.length >= 3; })
+            : [];
+        slices.push(loops);
+    }
+
+    // largeur de la coupe pour l'échantillonnage
+    var b2 = null;
+    for (var s2 = 0; s2 < slices.length && !b2; s2++) {
+        if (slices[s2].length) b2 = loopsBounds(slices[s2]);
+    }
+    if (!b2) {
+        return { ok: false, mode: 'flat', overhang: 0, approx: true, advice: "Impossible d'analyser l'imprimabilité." };
+    }
+    var M = 90, step = (b2.maxX - b2.minX) / (M + 1);
+
+    // chaque couche doit reposer sur la précédente (± delta)
+    var unsupported = 0;
+    for (var k = 1; k < N; k++) {
+        var upper = slices[k], lower = slices[k - 1];
+        if (!upper.length || !lower.length) continue;
+        for (var m = 1; m <= M; m++) {
+            var x = b2.minX + m * step;
+            var up = solidSpans(upper, 'x', x, 0.05);
+            if (!up.length) continue;
+            // appui = matière de la couche du dessous à x−δ, x, x+δ, dilatée de δ,
+            // FUSIONNÉE en une union d'intervalles (un appui peut être morcelé
+            // par la fente : prendre le meilleur morceau seul fausserait tout)
+            var base = solidSpans(lower, 'x', x, 0.02)
+                .concat(solidSpans(lower, 'x', Math.max(b2.minX, x - delta), 0.02))
+                .concat(solidSpans(lower, 'x', Math.min(b2.maxX, x + delta), 0.02))
+                .map(function (sp) { return [sp[0] - delta, sp[1] + delta]; })
+                .sort(function (p, q) { return p[0] - q[0]; });
+            var union = [];
+            for (var v = 0; v < base.length; v++) {
+                if (union.length && base[v][0] <= union[union.length - 1][1]) {
+                    if (base[v][1] > union[union.length - 1][1]) union[union.length - 1][1] = base[v][1];
+                } else union.push(base[v].slice());
+            }
+            for (var u = 0; u < up.length; u++) {
+                var lenU = up[u][1] - up[u][0], covered = 0;
+                for (var w = 0; w < union.length; w++) {
+                    var ov = Math.min(up[u][1], union[w][1]) - Math.max(up[u][0], union[w][0]);
+                    if (ov > 0) covered += ov;
+                }
+                if (covered < lenU - 0.05) unsupported += (lenU - covered) * step;
+            }
+        }
+    }
+    unsupported = unsupported / N;                     // moyenne par couche → mm² « typiques »
+
+    var ok = unsupported < 1.5;                        // tolérance : bruit de maillage
+    return {
+        ok: ok, mode: 'flat', overhang: unsupported, approx: true,
+        advice: ok
+            ? "S'imprime posé à plat sur sa face de profil, sans support."
+            : "Posé à plat, " + (unsupported < 10 ? unsupported.toFixed(1) : Math.round(unsupported)) +
+              " mm² de matière en porte-à-faux par couche : il faudra des supports."
+    };
 }
 
 /**

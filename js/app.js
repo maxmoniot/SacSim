@@ -1040,6 +1040,19 @@ class BackpackSimulatorApp {
             `;
         }
 
+        // === IMPRESSION 3D : le même verdict que le correcteur du prof ===
+        const secP = result.section;
+        if (secP && secP.ok && secP.printing) {
+            const pr = secP.printing;
+            detailsHTML += `
+                <p style="font-size: 14px; margin: 10px 0; padding: 8px; background: ${pr.ok ? 'rgba(76,175,80,0.08)' : 'rgba(244,67,54,0.08)'}; border-radius: 4px;">
+                    <strong>🖨️ Impression sans support :</strong>
+                    <span style="color: ${pr.ok ? '#4CAF50' : '#f44336'}; font-weight: 600;">${pr.ok ? 'OUI ✓' : 'NON ✗'}</span><br>
+                    <span style="font-size: 12px; color: #888;">${pr.advice}</span>
+                </p>
+            `;
+        }
+
         // === VUE EN COUPE : ce que voit aussi le professeur en corrigeant ===
         const sec = result.section;
         if (sec && sec.ok && window.SectionEngine) {
